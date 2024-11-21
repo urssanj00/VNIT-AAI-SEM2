@@ -1,0 +1,3 @@
+  sns.distplot(np.log1p(bikesharing_df['total_count']) , fit=norm);
+Distplot done
+mu = 4.57 and sigma = 1.42

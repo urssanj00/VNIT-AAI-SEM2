@@ -1,0 +1,2 @@
+  sns.distplot(bikesharing_df['total_count'] , fit=norm);
+mu = 189.46 and sigma = 181.38

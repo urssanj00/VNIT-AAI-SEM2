@@ -1,0 +1,19 @@
+Final data with all the relevant fields and Dep Variable
+   season_1  season_2  season_3  season_4  hol_0  hol_1  ...  atemp  humidity  windspeed  casual  registered  total_count
+0      True     False     False     False   True  False  ...   0.29      0.81        0.0       3          13           16
+1      True     False     False     False   True  False  ...   0.27      0.80        0.0       8          32           40
+2      True     False     False     False   True  False  ...   0.27      0.80        0.0       5          27           32
+3      True     False     False     False   True  False  ...   0.29      0.75        0.0       3          10           13
+4      True     False     False     False   True  False  ...   0.29      0.75        0.0       0           1            1
+
+[5 rows x 64 columns]
+Describing Final data
+           temp     atemp  humidity  windspeed    casual  registered  total_count
+count  17379.00  17379.00  17379.00   17379.00  17379.00    17379.00     17379.00
+mean       0.50      0.48      0.63       0.19     35.68      153.79       189.46
+std        0.19      0.17      0.19       0.12     49.31      151.36       181.39
+min        0.02      0.00      0.00       0.00      0.00        0.00         1.00
+25%        0.34      0.33      0.48       0.10      4.00       34.00        40.00
+50%        0.50      0.48      0.63       0.19     17.00      115.00       142.00
+75%        0.66      0.62      0.78       0.25     48.00      220.00       281.00
+max        1.00      1.00      1.00       0.85    367.00      886.00       977.00

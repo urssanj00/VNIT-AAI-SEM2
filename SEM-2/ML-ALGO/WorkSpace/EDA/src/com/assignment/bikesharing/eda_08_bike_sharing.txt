@@ -1,0 +1,7 @@
+First 5 rows for Train Data
+       temp  atemp  humidity  windspeed  casual  registered  total_count
+12978  0.82   0.83      0.63       0.19       6          42           48
+15766  0.50   0.48      0.77       0.09       0           4            4
+3170   0.56   0.53      0.88       0.00      13          18           31
+1843   0.50   0.48      0.45       0.22      21          85          106
+11000  0.54   0.52      0.24       0.25     198         259          457

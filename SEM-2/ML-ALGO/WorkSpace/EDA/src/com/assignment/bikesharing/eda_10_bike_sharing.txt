@@ -1,0 +1,7 @@
+Iteration 2, shape of matrix is: (3476, 6)
+Iteration 3, shape of matrix is: (3476, 6)
+Rows: 3476, Columns: 18
+[ 32.  93. 397. ... 287.  11. 143.] (3476,)
+Sum Square Error: 4.761316687084016e-15
+Mean Square Error: 9.935923432963306e-27
+Sum Squared Error: 1.7268634926490225e-23
