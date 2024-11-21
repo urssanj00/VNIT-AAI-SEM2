@@ -26,9 +26,14 @@ class BinaryClassifier(nn.Module):
         # z, which is the weighted sum of inputs plus bias:  z=W⋅x+b
         # Here, W is the weight matrix, x is the input, and b is the bias.
         z = self.fc(x)
+        print(z)
+        print(f'z:{z}')
         # Applies the Sigmoid activation function to the raw score z, squashing it into the range [0, 1].
         # This represents the probability of the input belonging to the positive class.
-        return torch.sigmoid(z)  # Apply Sigmoid activation
+        # Apply Sigmoid activation
+        sigmoid_z = torch.sigmoid(z)
+        print(f'sigmoid_z:{sigmoid_z}')
+        return sigmoid_z
 
 # Example input
 # Generates a tensor with random values sampled from a normal distribution.
