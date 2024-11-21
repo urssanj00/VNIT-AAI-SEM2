@@ -10,6 +10,7 @@ class SimpleNN(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_size) # Output layer
 
     def forward(self, x):
+        print ('in forward')
         x = F.relu(self.fc1(x))  # Apply ReLU activation to the first layer
         x = self.fc2(x)          # Output layer (without activation for regression)
         return x
