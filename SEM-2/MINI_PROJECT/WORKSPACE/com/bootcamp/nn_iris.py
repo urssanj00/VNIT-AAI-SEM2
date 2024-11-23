@@ -14,52 +14,49 @@ class Model(nn.Module):
     # O/p (3 classes of Iris flowers)
     def __init__(self, in_features=4, h1=8, h2=9, out_features=3):
         super().__init__() #instantiate nn.Module
-      #  self.fc1 = nn.Linear(in_features=4, h1)  # in_features moves to h1
+
         self.fc1 = nn.Linear(in_features, h1)  # in_features moves to h1
         print(f'self.fc1 : {self.fc1}')
+
         self.fc2 = nn.Linear(h1, h2)           # h1 (hidden layer1) moves to h1 (hidden layer2)
         print(f'self.fc2 : {self.fc2}')
+
         self.out = nn.Linear(h2, out_features) # h2 (hidden later2) moves to out_features
         print(f'self.out : {self.out}')
 
 
     def forward(self, x):
         print(f'0. forward-> x : {x}')
+
         x_fc1 = self.fc1(x)
         print(f"Before ReLU: {x_fc1}")
+
+        # relu zeros negative and returns same for positives max(0, x)
         x_forward = F.relu(x_fc1)
         print(f"After ReLU: {x_forward}")
 
-       # x_forward = F.relu(self.fc1(x))  # relu zeros negative and returns same for positives max(0, x)
         print(f'1. forward-> x_forward shape: {x_forward}')
         x_forward = F.relu(self.fc2(x_forward))
+
         print(f'2. forward-> x_forward shape: {x_forward}')
         x_forward = self.out(x_forward)
-        print(f'3. forward-> x_forward shape: {x_forward}')
 
+        print(f'3. forward-> x_forward shape: {x_forward}')
         return x_forward
 
 # pick a manual seed for randomization
 torch.manual_seed(41)
 
-
 my_df = pandas.read_csv("../dataset/iris/Iris.csv")
 
 print(f'head {my_df.head()}')
-
-#change last column from Strings to Integers
-# my_df['Species']=my_df['Species'].replace('Iris-setosa', 0.0)
-# my_df['Species']=my_df['Species'].replace('Iris-versicolor', 1.0)
-# my_df['Species']=my_df['Species'].replace('Iris-virginica', 2.0)
 
 # updated code - code above is deprecated
 # Replace species names with numeric values and convert explicitly to float
 mapping = {'Iris-setosa': 0.0, 'Iris-versicolor': 1.0, 'Iris-virginica': 2.0}
 my_df['Species'] = my_df['Species'].map(mapping).astype(float)
 
-
 print("=================================")
-
 print(f'head {my_df.head()}')
 
 # X is feature so dropping the Y from the dataframe
@@ -96,7 +93,6 @@ Y_test = torch.LongTensor(Y_test)
 print(f'1.c) Y_train shape: {Y_train.shape}')
 print(f'1.d) Y_test shape: {Y_test.shape}')
 
-
 model = Model(in_features=4)
 
 print(f'2.a) model: {model}')
@@ -128,7 +124,7 @@ for i in range(epochs):
     losses.append(loss.item())
     print(f'3.c.{i} losses appended with: {loss}')
 
-    if i % 2 == 0 :
+    if i % 10 == 0 :
         print(f"3.c.{i} Epoch {i}: Loss = {loss.item()}")
 
     optimizer.zero_grad()
@@ -148,8 +144,6 @@ plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.title("Training Loss over Epochs")
 plt.show()
-
-
 
 # Put model in evaluation mode
 model.eval()
