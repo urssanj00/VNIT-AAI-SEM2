@@ -111,7 +111,7 @@ print(f'2.c) optimizer: {optimizer}')
 
 # Train our model
 # Epochs ? (one run through all the training data in our network)
-epochs = 10
+epochs = 100
 losses = []
 print("Epoch starting")
 
