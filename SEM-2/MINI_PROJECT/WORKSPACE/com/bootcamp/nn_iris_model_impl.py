@@ -21,42 +21,38 @@ class IrisModel(nn.Module):
         x = self.out(x)  # Use `out` as the final layer
         return x
 
+    # Reload the state dictionary and load it into the model
+
 try:
     model = IrisModel()
-    # Load the state dictionary into the model
     model.load_state_dict(saved_state)
     print("Saved Model Loaded successfully ...")
-
-    # Set the model to evaluation mode
     model.eval()
     print("Saved Model Evaluated successfully ...")
-
-
-    # Example batch of test inputs (4 features from the Iris dataset)
-    # Format: [sepal_length, sepal_width, petal_length, petal_width]
-    # Example batch of test inputs
-    test_sample = np.array([
-        [5.1, 3.5, 1.4, 0.2],  # Iris-Setosa
-        [6.7, 3.1, 4.4, 1.4],  # Iris-Versicolor
-        [7.2, 3.6, 6.1, 2.5]   # Iris-Virginica
-    ])
-
-    # Convert to a PyTorch tensor (float type)
-    test_tensor = torch.FloatTensor(test_sample)
-
-    # Make the prediction
-    with torch.no_grad():  # No gradient calculation during inference
-        outputs = model(test_tensor)
-        predicted_class = torch.argmax(outputs, dim=1)  # Get the class index with the highest score
-
-    print(f'Predicted_class: { predicted_class}')
-
-    # Map the predicted index to class names
-    class_names = ["Setosa", "Versicolor", "Virginica"]
-
-    # Map and print predictions
-    for sample, pred in zip(test_sample, predicted_class):
-        print(f"Sample: {sample}, Predicted Class: {class_names[pred.item()]}")
-
 except Exception as e:
     print(f"An error occurred while loading the state dictionary: {e}")
+
+model = IrisModel()
+
+# Load the state dictionary into the model
+model.load_state_dict(saved_state)
+model.eval()  # Set the model to evaluation mode
+
+# Example test input (4 features from the Iris dataset)
+# Format: [sepal_length, sepal_width, petal_length, petal_width]
+test_sample = np.array([[5.1, 3.5, 1.4, 0.2]])  # This corresponds to Iris-Setosa
+
+# Convert to a PyTorch tensor (float type)
+test_tensor = torch.FloatTensor(test_sample)
+
+# Make the prediction
+with torch.no_grad():  # No gradient calculation during inference
+    outputs = model(test_tensor)
+    predicted_class = torch.argmax(outputs, dim=1)  # Get the class index with the highest score
+
+# Map the predicted index to class names
+class_names = ["Setosa", "Versicolor", "Virginica"]
+predicted_label = class_names[predicted_class.item()]
+
+print(f"Predicted Class: {predicted_label}")
+
