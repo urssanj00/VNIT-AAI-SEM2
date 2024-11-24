@@ -19,14 +19,15 @@ class BinaryClassifier(nn.Module):
         # In binary classification, the single output represents the raw score (logit), which will later be passed
         # through the Sigmoid function.
         self.fc = nn.Linear(input_dim, 1)  # Single output neuron
+        print(f'self.fc: {self.fc}')
 
     # forward(self, x): Defines how the data flows through the model during the forward pass (from input to output).
     def forward(self, x):
+        print(f'x : {x}')
         # Takes the input x (a tensor of features) and applies the linear layer self.fc to compute the raw score
         # z, which is the weighted sum of inputs plus bias:  z=W⋅x+b
         # Here, W is the weight matrix, x is the input, and b is the bias.
         z = self.fc(x)
-        print(z)
         print(f'z:{z}')
         # Applies the Sigmoid activation function to the raw score z, squashing it into the range [0, 1].
         # This represents the probability of the input belonging to the positive class.

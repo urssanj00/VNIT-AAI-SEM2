@@ -2,9 +2,8 @@ import pandas
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import pandas as pd
-#%matplotlib inline
+
+
 class Model(nn.Module):
     # input layer (4 features of the flower) -->
     #   a) sepal length / width
@@ -111,6 +110,12 @@ epochs = 100
 losses = []
 print("Epoch starting")
 
+import pickle
+
+# Initialize variables to track the best model
+best_loss = float('inf')  # Start with a high loss
+best_model_state = None
+
 for i in range(epochs):
     # get prediction
     y_pred = model.forward(X_train)
@@ -135,6 +140,19 @@ for i in range(epochs):
 
     optimizer.step()
     print(f'3.f.{i} optimizer.step(): loss : {loss}')
+
+    # Check if the current model has the lowest loss
+    if loss.item() < best_loss:
+        best_loss = loss.item()
+        best_model_state = model.state_dict()  # Save the model's state dictionary
+
+        print(f"New best model found at epoch {i} with loss {best_loss:.4f}")
+
+# Save the best model to a pickle file
+with open("best_model.pkl", "wb") as f:
+    pickle.dump(best_model_state, f)
+print("Best model saved to 'best_model.pkl'")
+
 
 # Visualize Loss
 import matplotlib.pyplot as plt
