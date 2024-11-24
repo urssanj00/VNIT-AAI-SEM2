@@ -34,18 +34,6 @@ try:
 except Exception as e:
     print(f"An error occurred while loading the state dictionary: {e}")
 
-class IrisModel(nn.Module):
-    def __init__(self):
-        super(IrisModel, self).__init__()
-        self.fc1 = nn.Linear(4, 8)  # 4 input features, 8 neurons in the first hidden layer
-        self.fc2 = nn.Linear(8, 9)  # 9 neurons in the second hidden layer
-        self.fc3 = nn.Linear(9, 3)  # 3 output classes (Setosa, Versicolor, Virginica)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)  # No softmax; CrossEntropyLoss handles it
-        return x
 
 model = IrisModel()
 
