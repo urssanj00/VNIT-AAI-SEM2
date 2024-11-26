@@ -1,0 +1,49 @@
+PS C:\Sanjeev\VNIT_CLASSES\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops> conda create -n mlops
+Collecting package metadata (current_repodata.json): done
+Solving environment: done
+
+
+==> WARNING: A newer version of conda exists. <==
+  current version: 23.7.4
+  latest version: 24.11.0
+
+Please update conda by running
+
+    $ conda update -n base -c defaults conda
+
+Or to minimize the number of packages updated during conda update use
+
+     conda install conda=24.11.0
+
+
+
+## Package Plan ##
+
+  environment location: C:\Users\urssa\anaconda3\envs\mlops
+
+
+
+Proceed ([y]/n)? y
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+#
+# To activate this environment, use
+#
+#     $ conda activate mlops
+#
+# To deactivate an active environment, use
+#
+#     $ conda deactivate
+
+C:\Sanjeev\VNIT_CLASSES\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops>conda activate mlops
+
+(mlops) C:\Sanjeev\VNIT_CLASSES\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops>jupyter notebook
+[I 2024-11-26 09:09:16.431 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2024-11-26 09:09:16.451 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2024-11-26 09:09:16.465 ServerApp] jupyterlab | extension was successfully linked.
+...
+...
+...
+
