@@ -52,3 +52,8 @@ C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops>co
 (mlops) C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops>jupyter notebook
 [I 2024-11-26 09:43:29.233 ServerApp] jupyter_lsp | extension was successfully linked.
 [I 2024-11-26 09:43:29.242 ServerApp] jupyter_server_terminals | extension was successfully linked.
+
+
+Another command prompt
+
+PS C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops> mlflow server --host 0.0.0.0 --port 5001
