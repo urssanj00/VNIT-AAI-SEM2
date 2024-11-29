@@ -1,0 +1,6 @@
+n = -10:10;
+impulse = (n == 0); % Unit impulse
+stem(n, impulse);
+title('Unit Impulse Signal');
+xlabel('n');
+ylabel('Amplitude');
