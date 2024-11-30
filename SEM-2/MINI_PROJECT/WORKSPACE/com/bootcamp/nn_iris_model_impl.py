@@ -32,15 +32,13 @@ try:
 except Exception as e:
     print(f"An error occurred while loading the state dictionary: {e}")
 
-model = IrisModel()
 
-# Load the state dictionary into the model
-model.load_state_dict(saved_state)
-model.eval()  # Set the model to evaluation mode
 
 # Example test input (4 features from the Iris dataset)
 # Format: [sepal_length, sepal_width, petal_length, petal_width]
-test_sample = np.array([[5.1, 3.5, 1.4, 0.2]])  # This corresponds to Iris-Setosa
+test_sample = np.array([[6.1,2.9,4.7,1.4]])  # This corresponds to Iris-Setosa
+
+
 
 # Convert to a PyTorch tensor (float type)
 test_tensor = torch.FloatTensor(test_sample)
