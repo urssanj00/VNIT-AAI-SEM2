@@ -1,3 +1,11 @@
+
+
+conda init is required by specification.
+1.conda init
+2.conda create --name myenv python=3.8 numpy pandas
+3.conda activate myenv
+
+
 PS C:\Sanjeev\VNIT_CLASSES\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\mlops> conda create -n mlops
 Collecting package metadata (current_repodata.json): done
 Solving environment: done

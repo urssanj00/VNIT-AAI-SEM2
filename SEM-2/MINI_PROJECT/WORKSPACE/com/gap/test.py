@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-'''
+
 # Sample data
 data = {
     0: [
@@ -25,13 +25,13 @@ data = {
         'left_only', 'both', 'both', 'both', 'both'
     ]
 }
-'''
-file_path = "../dataset/wits/Braamfischer.csv"
-df = pd.read_csv(file_path, header=None)
+
+#file_path = "../dataset/wits/Braamfischer.csv"
+#df = pd.read_csv(file_path, header=None)
 
 
 # Convert to DataFrame
-#df = pd.DataFrame(data)
+df = pd.DataFrame(data)
 df[0] = pd.to_datetime(df[0])  # Convert to datetime
 
 df = df.sort_values(by=0)
@@ -43,8 +43,8 @@ def csv_report_missing_timeline(df1):
 
         start = pd.to_datetime( df1.iloc[i][0])
         val = df1.iloc[i][1]
-        print (val)
-        if val is None:
+      #  print (val)
+        if pd.isna(val ):
             print(f'0 null for {df1.iloc[i][0]}')
             k=0
             for j in range(i,len(df1)):

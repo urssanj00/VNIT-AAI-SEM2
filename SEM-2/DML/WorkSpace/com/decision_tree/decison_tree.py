@@ -23,11 +23,12 @@ print (f"Features : {features}")
 target = df["Species"]
 print (f"Target : {target}")
 
-from sklearn.tree import  DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 # step:1
 # hyperparameters = max_depth and min_samples_leaf
-model = DecisionTreeClassifier(criterion="entropy", max_depth=7, min_samples_leaf=4)  # to avoid overfitting limit the max_depth and min_samples_leaf
+# to avoid overfitting limit the max_depth and min_samples_leaf
+model = DecisionTreeClassifier(criterion="entropy", max_depth=7, min_samples_leaf=4)
 
 # steps:2 - Train on data
 model.fit(features, target)
