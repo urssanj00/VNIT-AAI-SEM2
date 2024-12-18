@@ -66,13 +66,13 @@ class URLToCSV:
             self.station_url_list.append(f"{self.station_list_url}/{st_id}/sensorData?days=")
 
     def m4_dump_station_pm2_5_data(self, days):
-        i=0
-        for st_id in self.station_url_list:
+        i = 0
+        for st_id, st_name in zip(self.station_url_list, self.station_list_df['name']):
             url_st_data = st_id + str(days)
-            filename = f'{self.data_set_dir}/{i}.csv'
+            filename = f'{self.data_set_dir}/{st_name.lower().replace(" ", "_")}_{i}.csv'
             print(filename)
             self.dump_csv(url_st_data, filename)
-            i = i+1
+            i = i + 1
 
 urlToCSV = URLToCSV()
 
