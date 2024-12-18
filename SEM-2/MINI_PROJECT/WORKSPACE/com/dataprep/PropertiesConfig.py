@@ -1,7 +1,10 @@
 from jproperties import Properties
+import os
 
 class PropertiesConfig:
-    def __init__(self, properties_file_name):
+    def __init__(self, properties_file_name="sensor-data.properties"):
+        properties_file_name = os.path.join(os.path.dirname(__file__), 'sensor-data.properties')
+        print(f'properties_file_name {properties_file_name}')
         configs = Properties()
         with open(properties_file_name, 'rb') as read_prop:
             configs.load(read_prop)
