@@ -11,6 +11,7 @@ class URLToCSV:
         # URL of the JSON data
         # Create an instance of PropertiesConfig
         properties_config = PC("sensor-data.properties")
+
         # Get properties as a dictionary
         self.properties = properties_config.get_properties_config()
 
@@ -21,7 +22,6 @@ class URLToCSV:
         current_date = datetime.now().strftime(self.properties['date_format'])
         self.station_list_csv_file = f"{self.data_set_dir}/station_list_{current_date}.csv"
         self.station_list_df = None
-        self.station_url_list = []
 
     def m1_generate_station_list_csv(self):
         self.station_list_df = self.get_response(self.station_list_url)
