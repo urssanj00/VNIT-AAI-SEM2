@@ -1,10 +1,10 @@
-import requests
-import csv
 from datetime import datetime
-import csv
-import ijson
-from PropertiesConfig import PropertiesConfig as PC
+
 import pandas as pd
+import requests
+
+from PropertiesConfig import PropertiesConfig as PC
+
 
 class URLToCSV:
     def __init__(self):
@@ -18,7 +18,7 @@ class URLToCSV:
         self.station_list_url = self.properties['station_list_url']
         self.data_set_dir = self.properties['data_set_path']
         # Generate a timestamp for the filename
-        timestamp = datetime.now().strftime(self.properties['time_format'])
+        #timestamp = datetime.now().strftime(self.properties['time_format'])
         current_date = datetime.now().strftime(self.properties['date_format'])
         self.station_list_csv_file = f"{self.data_set_dir}/station_list_{current_date}.csv"
         self.station_list_df = None

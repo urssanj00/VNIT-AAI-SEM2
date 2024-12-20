@@ -6,9 +6,6 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from com.dataprep.PropertiesConfig import PropertiesConfig as PC
-import os
-
-#properties_path = os.path.join(os.path.dirname(__file__), '../dataprep/sensor-data.properties')
 
 
 properties_config = PC()

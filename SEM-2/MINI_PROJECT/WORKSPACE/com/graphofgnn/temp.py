@@ -4,31 +4,30 @@ import numpy as np
 import networkx as nx
 import torch
 from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from com.dataprep.PropertiesConfig import PropertiesConfig as PC
-import os
+from GNNCustomized import GNNCustomized as GNN
 
 # Create an instance of PropertiesConfig
 properties_config = PC("sensor-data.properties")
 properties = properties_config.get_properties_config()
 data_set_dir = properties['data_set_path']
+plot_dir = properties['plot_path']
 
-# Step 0: Load the file name with DIR in a file_list
+# Step 0: Load the file list with directory
+
 def load_file_list():
     station_directory = f"{data_set_dir}"
     file_list = []
     try:
         files = os.listdir(station_directory)
         filtered_files = [f for f in files if 'station_list' not in f.lower()]
-        print("Files in", station_directory, ":")
         for file in filtered_files:
             file_list.append(f'{station_directory}/{file}')
     except FileNotFoundError:
         print("Directory not found:", station_directory)
-
-    print('0. load_file_list done')
+    print('File list loaded.')
     return file_list
 
 # Step 1: Load and preprocess the data
@@ -41,9 +40,8 @@ def load_data(file_list):
             dataframes.append(df)
         except Exception as e:
             print(f"Error reading {filepath}: {e}")
-            continue
     combined_data = pd.concat(dataframes, ignore_index=True)
-    print('1. load_data done')
+    print('Data combined.')
     return combined_data
 
 # Add lag features for temporal prediction
@@ -51,34 +49,50 @@ def add_lag_features(df, target_column, lag_days=7):
     for lag in range(1, lag_days + 1):
         df[f'{target_column}_lag_{lag}'] = df[target_column].shift(lag)
     df.dropna(inplace=True)
-    print('Added lag features for temporal data.')
+    print('Lag features added.')
     return df
 
 # Step 2: Normalize features
 def normalize_features(df, feature_columns):
     scaler = MinMaxScaler()
     df[feature_columns] = scaler.fit_transform(df[feature_columns])
-    print('2. normalize_features done')
+    print('Features normalized.')
     return df, scaler
 
 # Step 3: Create a graph with temporal data
-def create_graph_with_temporal_data(df, lag_days):
+def create_graph_with_temporal_data(df, lag_days, distance_threshold=0.01):
     G = nx.Graph()
     for i, row in df.iterrows():
         features = row[['temperature', 'humidity', 'longitude', 'latitude']].tolist()
         lag_features = row[[f'pm2p5_lag_{lag}' for lag in range(1, lag_days + 1)]].tolist()
         G.add_node(i, features=features + lag_features, target=row['pm2p5'])
 
-    # Add edges based on geographical proximity
     for i, row_i in df.iterrows():
         for j, row_j in df.iterrows():
             if i != j:
                 distance = np.sqrt((row_i['longitude'] - row_j['longitude'])**2 + (row_i['latitude'] - row_j['latitude'])**2)
-                if distance < 0.01:  # Example threshold
+                if distance < distance_threshold:
                     G.add_edge(i, j)
 
-    print('3. create_graph_with_temporal_data done')
+    print(f"Graph created with {len(G.edges)} edges.")
+    visualize_graph(G, df)
     return G
+
+def visualize_graph(G, df):
+    positions = {i: (row['longitude'], row['latitude']) for i, row in df.iterrows()}
+    plt.figure(figsize=(10, 7))
+    nx.draw(
+        G,
+        pos=positions,
+        with_labels=True,
+        node_color='lightblue',
+        edge_color='gray',
+        node_size=300,
+        font_size=8
+    )
+    plt.title("Graph Representation with Temporal Data")
+    plt.savefig(f'{plot_dir}/graph.png')
+    plt.close()
 
 # Step 4: Convert to PyTorch Geometric Data
 def graph_to_pyg_data(G):
@@ -86,100 +100,110 @@ def graph_to_pyg_data(G):
     features = graph_to_pyg_data_features(G)
     num_nodes = features.size(0)
 
-    # Ensure edge_index only contains valid indices
     valid_mask = (edge_index[0] < num_nodes) & (edge_index[1] < num_nodes)
     edge_index = edge_index[:, valid_mask]
 
     target = torch.tensor([G.nodes[node]['target'] for node in G.nodes], dtype=torch.float)
     data = Data(x=features, edge_index=edge_index, y=target)
 
-    # Debugging info
-    print('4. graph_to_pyg_data done')
-    print("Edge Index Shape:", edge_index.shape)
-    print("Number of Nodes:", num_nodes)
-
+    print(f"Converted graph to PyTorch Geometric format. Nodes: {num_nodes}, Edges: {edge_index.size(1)}")
     return data
 
 def graph_to_pyg_data_features(G):
     first_node = list(G.nodes())[0]
     feature_dim = len(G.nodes[first_node]['features'])
-    num_nodes = len(G.nodes)
-    node_features = np.zeros((num_nodes, feature_dim))
+    node_features = np.zeros((len(G.nodes), feature_dim))
+
     for idx, node in enumerate(G.nodes):
         node_features[idx] = G.nodes[node]['features']
+
     features = torch.tensor(node_features, dtype=torch.float32)
-    print("Feature tensor shape:", features.shape)
     return features
 
-# Step 5: Define the GNN model
-class GNN(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
-        super(GNN, self).__init__()
-        self.conv1 = GCNConv(input_dim, hidden_dim)
-        self.conv2 = GCNConv(hidden_dim, output_dim)
-        print('5.0 GNN.__init__ done')
-
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        x = self.conv1(x, edge_index)
-        x = torch.relu(x)
-        x = self.conv2(x, edge_index)
-        x = x.squeeze(-1)  # Ensure output is 1D
-        print('5.1 GNN.forward done')
-        return x
-
 # Step 6: Train the model
-def train_model(data, model, epochs=200, lr=0.01):
+def train_model(data, model, epochs=100, lr=0.01):
+    print('Starting model training...')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = torch.nn.MSELoss()
     model.train()
+
+    epoch_counts, loss_values = [], []
+    predictions, actual_values = [], []
+
     for epoch in range(epochs):
         optimizer.zero_grad()
         out = model(data)
         loss = criterion(out, data.y)
         loss.backward()
         optimizer.step()
+
+        epoch_counts.append(epoch)
+        loss_values.append(loss.item())
+
         if epoch % 10 == 0:
-            print(f'Epoch:{epoch} Loss:{loss.item()}')
-    print('6. train_model done')
+            predictions.append(out.detach().cpu().numpy())
+            actual_values.append(data.y.detach().cpu().numpy())
+            print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+
+    save_plot(epoch_counts, loss_values, "epoch_loss.png", "Epochs", "Loss", "Training Loss")
+    save_scatter_plot(actual_values, predictions, "actual_vs_predicted.png")
     return model
+
+def save_plot(x, y, filename, xlabel, ylabel, title):
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, label=title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(f'{plot_dir}/{filename}')
+    plt.close()
+    print(f"Plot saved: {filename}")
+
+def save_scatter_plot(actual_values, predictions, filename):
+    plt.figure(figsize=(10, 6))
+    for i in range(len(predictions)):
+        plt.scatter(actual_values[i], predictions[i], label=f"Epoch {i * 10}")
+    plt.plot(
+        [min(actual_values[0]), max(actual_values[0])],
+        [min(actual_values[0]), max(actual_values[0])],
+        color='red', linestyle='--', label='Perfect Fit'
+    )
+    plt.xlabel("Actual Values")
+    plt.ylabel("Predicted Values")
+    plt.title("Actual vs Predicted Values")
+    plt.legend()
+    plt.grid()
+    plt.savefig(f'{plot_dir}/{filename}')
+    plt.close()
+    print(f"Scatter plot saved: {filename}")
 
 # Step 7: Predict for the next 7 days
 def predict_next_7_days(data, model, scaler):
     model.eval()
     predictions = []
     with torch.no_grad():
-        # Start with the most recent node's features
-        input_data = data.x[-1]  # Shape: [input_dim]
+        input_data = data.x[-1]
 
         for _ in range(7):
-            # Ensure input_data matches input_dim of the model
             input_dim = model.conv1.in_channels
             if input_data.shape[0] < input_dim:
-                # Pad with zeros if input_data has fewer features
                 input_data = torch.cat([input_data, torch.zeros(input_dim - input_data.shape[0])])
             elif input_data.shape[0] > input_dim:
-                # Truncate if input_data has more features
                 input_data = input_data[:input_dim]
 
-            # Create a new Data object for the current step
             temp_data = Data(x=input_data.unsqueeze(0), edge_index=torch.zeros((2, 0), dtype=torch.long))
-
-            # Predict the next value
             prediction = model(temp_data).item()
             predictions.append(prediction)
-
-            # Update input_data with the new prediction
             input_data = torch.cat([input_data[4:], torch.tensor([prediction])])
 
-    # Rescale predictions back to the original range using only the scaler for the target
     target_scaler = MinMaxScaler()
-    target_scaler.min_, target_scaler.scale_ = scaler.min_[-1:], scaler.scale_[-1:]  # Use the last feature (pm2p5)
+    target_scaler.min_, target_scaler.scale_ = scaler.min_[-1:], scaler.scale_[-1:]
     predictions = target_scaler.inverse_transform(np.array(predictions).reshape(-1, 1)).flatten()
 
-    print('Predicted values for the next 7 days:', predictions)
+    print('Next 7 days predictions:', predictions)
     return predictions
-
 
 # Main program
 if __name__ == "__main__":
@@ -189,8 +213,10 @@ if __name__ == "__main__":
     target_column = 'pm2p5'
     combined_data = add_lag_features(combined_data, target_column)
     combined_data, scaler = normalize_features(combined_data, feature_columns + [f'{target_column}_lag_{i}' for i in range(1, 8)])
-    G = create_graph_with_temporal_data(combined_data, lag_days=7)
+
+    G = create_graph_with_temporal_data(combined_data, lag_days=7, distance_threshold=0.2)
     data = graph_to_pyg_data(G)
+
     input_dim = len(feature_columns) + 7
     hidden_dim = 16
     output_dim = 1

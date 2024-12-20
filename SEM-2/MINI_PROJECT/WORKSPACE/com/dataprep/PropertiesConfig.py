@@ -1,5 +1,7 @@
-from jproperties import Properties
 import os
+
+from jproperties import Properties
+
 
 class PropertiesConfig:
     def __init__(self, properties_file_name="sensor-data.properties"):
