@@ -50,7 +50,7 @@ for i in range(len(unique_sensors)):
         edge_index.append([i, j])  # Add edges between all nodes
 
 edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
-
+print(f'edge_index : {edge_index}')
 
 # Step 4: Define GNN Model
 class GNN(torch.nn.Module):
