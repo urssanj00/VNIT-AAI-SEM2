@@ -51,7 +51,7 @@ class VisualAction:
 
         graph3 = Graph(edge_index_3, x_3, y_3).graph
 
-        meta_graph1 = MetaGraph(edge_list=[(0, 1), (1, 2), (2, 3)])
+        meta_graph1 = MetaGraph(edge_list=[(0, 1), (1, 2), (0, 2)])
         meta_graph = meta_graph1.g_meta
         meta_edge_index = meta_graph1.edge_index
 
@@ -98,7 +98,6 @@ def run_classification():
     # Now, integrate graph-level embeddings into the meta-graph
     # For simplicity, we assume that each graph's prediction is part of the meta-graph's node features
     meta_graph_model = GraphOfGraphsModel(in_channels=2, hidden_channels=4, out_channels=2)  # Meta-graph model
-   # meta_edge_index = torch.tensor(list(meta_graph.edge_index), dtype=torch.long).t().contiguous()
 
     meta_graph_data = Data(x=graph_embeddings, edge_index=meta_edge_index)
 
