@@ -13,6 +13,7 @@ from sklearn.preprocessing import MinMaxScaler
 import random
 import string
 
+# Author Sanjeev Pandey
 class LatticeImpl:
     def __init__(self):
         properties_config = PC()
@@ -23,7 +24,7 @@ class LatticeImpl:
         self.graph_list = []
         self.pd_list = []
         self.coordinate_to_index = {}  # Mapping of coordinates to global indices
-        self.features = ['temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend' ] #['temperature', 'humidity'] #
+        self.features = ['temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend'] #['temperature', 'humidity'] #
         self.targets = ['pm2p5']
         self.gnn_model = GraphLevelGNN(in_channels=len(self.features), hidden_channels=64, out_channels=len(self.targets))
 
@@ -50,9 +51,7 @@ class LatticeImpl:
                 df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
 
                 df_obj = self.timstamp_to_numeric(df_obj)
-               # print(f"{df_obj['timestamp']}, {df_obj['year']},{df_obj['month']},{df_obj['day']} ,{df_obj['hour']}")
 
-                #print(f'df_object {df_obj.head()}')
                 # Ensure numeric data and process dataset
                 df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
                 df_obj = df_obj.sort_values(by=['sensor_id', 'timestamp']).reset_index(drop=True)
@@ -82,7 +81,6 @@ class LatticeImpl:
                 df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
                     lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1)
 
-                #print(f"df_obj['sensor_index']: {df_obj['sensor_index'].head() }")
                 graph = Data(x=x, edge_index=edge_index, y=y)
                 self.graph_list.append(graph)
 
