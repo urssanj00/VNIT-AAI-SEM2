@@ -4,8 +4,8 @@ from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
 import matplotlib.pyplot as plt
 import networkx as nx
-from com.dataprep.PropertiesConfig import PropertiesConfig as PC
-
+from PropertiesConfig import PropertiesConfig as PC
+from MetaGraph import MetaGraph
 
 # Step 1: Define three simple graphs
 # Graph 1: 4 nodes and 4 edges
@@ -13,6 +13,7 @@ class Graph:
     def __init__(self, edge_index, x, y):
         self.graph = Data(x=x, edge_index=edge_index, y=y)
 
+''' 
 # Step 2: Combine the graphs into a "graph of graphs"
 # Define the meta-graph (graph of graphs)
 class MetaGraph:
@@ -29,6 +30,7 @@ class MetaGraph:
         for i in range(self.edge_index.size(1)):
             src, tgt = self.edge_index[:, i].tolist()
             self.g_meta.add_edge(src, tgt)
+'''
 
 # Step 3: Visualize individual graphs and the "graph of graphs"
 class VisualAction:
@@ -98,13 +100,18 @@ class VisualAction:
         y_3 = torch.tensor([0, 1, 1, 0, 1], dtype=torch.long)
         graph3 = Graph(edge_index_3, x_3, y_3).graph
 
-        meta_graph = MetaGraph().g_meta
+        meta_graph = MetaGraph(edge_list=[(0, 1), (1, 2), (2, 3)])
+        g_meta = meta_graph.g_meta
         # Visualize each graph
         self.visualize_graph(graph1, "Graph 1", f'{self.plot_path}/graph1.png')
+        print(f'{self.plot_path}/graph1.png')
         self.visualize_graph(graph2, "Graph 2", f'{self.plot_path}/graph2.png')
+        print(f'{self.plot_path}/graph2.png')
         self.visualize_graph(graph3, "Graph 3", f'{self.plot_path}/graph3.png')
-        self.visualise_meta_graph(meta_graph, "Meta-Graph (Graph of Graphs)", f'{self.plot_path}/meta_graph.png')
-
+        print(f'{self.plot_path}/graph3.png')
+        self.visualise_meta_graph(meta_graph, "Meta-Graph (Graph of Graphs)",
+                                  f'{self.plot_path}/meta_graph.png')
+        print(f'{self.plot_path}/meta_graph.png')
 
 visual_action = VisualAction()
 visual_action.print_graphs()
