@@ -12,6 +12,7 @@ import os
 from sklearn.preprocessing import MinMaxScaler
 import random
 import string
+from BayesianOptimization import BayesianOptimization
 
 # Author Sanjeev Pandey
 class LatticeImpl:
@@ -80,6 +81,7 @@ class LatticeImpl:
                 # Map local coordinates to global indices
                 df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
                     lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1)
+
 
                 graph = Data(x=x, edge_index=edge_index, y=y)
                 self.graph_list.append(graph)
@@ -279,7 +281,13 @@ class LatticeImpl:
         edge_index = torch.tensor([edge_source, edge_target], dtype=torch.long)
         return edge_index
 
+
 latticeImpl = LatticeImpl()
 latticeImpl.load_dataset()
-latticeImpl.do_train()
-latticeImpl.do_predict()
+
+bayesianOptimization = BayesianOptimization()
+#for graph in latticeImpl.graph_list:
+bayesianOptimization.tune_hyperparameters(GraphLevelGNN, latticeImpl.graph_list, len(latticeImpl.features) )
+
+#latticeImpl.do_train()
+#latticeImpl.do_predict()
