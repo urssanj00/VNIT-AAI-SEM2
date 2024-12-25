@@ -4,7 +4,8 @@ from PropertiesConfig import PropertiesConfig as PC
 import torch
 import numpy as np
 from scipy.spatial import distance_matrix
-from GraphLevelGNN import  GraphLevelGNN
+from GraphLevelGNN import GraphLevelGNN
+#from GraphLevelGNNWithLSTM import GraphLevelGNNWithLSTM
 from torch_geometric.data import Data
 from torch_geometric.utils import add_self_loops
 import torch.nn as nn
@@ -13,8 +14,9 @@ from sklearn.preprocessing import MinMaxScaler
 import random
 import string
 from BayesianOptimization import BayesianOptimization
+from sklearn.model_selection import  train_test_split
+import pickle
 
-# Author Sanjeev Pandey
 class LatticeImpl:
     def __init__(self):
         properties_config = PC()
@@ -25,9 +27,13 @@ class LatticeImpl:
         self.graph_list = []
         self.pd_list = []
         self.coordinate_to_index = {}  # Mapping of coordinates to global indices
-        self.features = ['temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend'] #['temperature', 'humidity'] #
+        self.features = [
+            'temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend'
+        ]
         self.targets = ['pm2p5']
-        self.gnn_model = GraphLevelGNN(in_channels=len(self.features), hidden_channels=64, out_channels=len(self.targets))
+        self.gnn_model = GraphLevelGNN(in_channels=len(self.features))
+        self.best_model_path = properties['best_model_path']
+        self.pm2p5_output = properties['pm2p5_output']
 
     def timstamp_to_numeric(self, df_obj):
         df = df_obj
@@ -38,8 +44,40 @@ class LatticeImpl:
         df['hour'] = df['timestamp'].dt.hour
         df['weekday'] = df['timestamp'].dt.weekday  # 0=Monday, 6=Sunday
         df['is_weekend'] = (df['weekday'] >= 5).astype(int)
-      # print(f"{df['timestamp']}, {df['year']},{df['month']},{df['day']} ,{df['hour']}")
         return df
+
+    def load_graph_from_individual_dataset(self, all_sensor_coordinates, file_name):
+        print(f'load_graph_from_individual_dataset: {self.dataset_path}/{file_name}')
+        df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
+        df_obj = self.timstamp_to_numeric(df_obj)
+
+        df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
+        df_obj = df_obj.sort_values(by=['sensor_id', 'year', 'month', 'day', 'hour']).reset_index(drop=True)
+
+        df_obj[self.features] = df_obj[self.features].apply(pd.to_numeric, errors='coerce')
+
+        # Step 2: Feature Scaling
+        scaler = MinMaxScaler()
+        df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
+        df_obj.fillna(0, inplace=True)
+
+        x = torch.tensor(df_obj[self.features].values, dtype=torch.float)
+        y = torch.tensor(df_obj[self.targets].values, dtype=torch.float)
+
+        # Collect coordinates from the dataset
+        sensor_coordinates = LatticeImpl.load_sensor_coordinates(df_obj)
+        all_sensor_coordinates.extend(sensor_coordinates)
+
+        self.pd_list.append(df_obj)
+        df_obj, edge_index = self.create_edge_index_for_individual_graph(df_obj)
+
+        df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
+            lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1
+        )
+
+        graph = Data(x=x, edge_index=edge_index, y=y)
+        self.graph_list.append(graph)
+        return graph, all_sensor_coordinates
 
     def load_dataset(self):
         list_files = Util.list_files_of_a_dir(self.dataset_path)
@@ -48,48 +86,12 @@ class LatticeImpl:
         all_sensor_coordinates = []
 
         for file_name in list_files:
+            print(f"file_name : {file_name}")
             if 'station' not in file_name:
-                df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
+                graph, all_sensor_coordinates = self.load_graph_from_individual_dataset(all_sensor_coordinates,
+                                                                                        file_name)
 
-                df_obj = self.timstamp_to_numeric(df_obj)
-
-                # Ensure numeric data and process dataset
-                df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
-                df_obj = df_obj.sort_values(by=['sensor_id', 'timestamp']).reset_index(drop=True)
-
-                df_obj[self.features] = df_obj[self.features].apply(pd.to_numeric, errors='coerce')
-                # Step 2: Feature Scaling
-                scaler = MinMaxScaler()
-                # ['temperature', 'humidity']
-                df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
-
-                df_obj.fillna(0, inplace=True)
-                x = df_obj[self.features]
-                # Convert it to a tensor if it's a dataframe
-                x = torch.tensor(x.values, dtype=torch.float)  # Convert to tensor of shape
-
-                y = df_obj[self.targets]
-                y = torch.tensor(y.values, dtype=torch.float)  # Convert to tensor of shape
-
-                # Collect coordinates from the dataset
-                sensor_coordinates = LatticeImpl.load_sensor_coordinates(df_obj)
-                all_sensor_coordinates.extend(sensor_coordinates)
-
-                self.pd_list.append(df_obj)
-                edge_index = self.create_edge_index_for_individual_graph(df_obj)
-
-                # Map local coordinates to global indices
-                df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
-                    lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1)
-
-
-                graph = Data(x=x, edge_index=edge_index, y=y)
-                self.graph_list.append(graph)
-
-        # Remove duplicate coordinates and keep only unique ones
         unique_coordinates = np.unique(all_sensor_coordinates, axis=0)
-        #print(f'unique_coordinates : {unique_coordinates}')
-
         self.coordinate_to_index = {tuple(coord): idx for idx, coord in enumerate(unique_coordinates)}
 
         edge_index_for_graph_of_graphs = self.create_edge_index_for_graph_of_graphs(unique_coordinates)
@@ -102,161 +104,137 @@ class LatticeImpl:
 
     def do_train(self):
         # Step 5: Train the Model
-        optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.0381587687863735)
         loss_fn = torch.nn.MSELoss()
-        prev_loss = None
+
+        best_loss = float('inf')  # Initialize best loss as infinity
+        best_model_state = None
+        best_model = None
         for graph in self.graph_list:
-            for epoch in range(100):
+            for epoch in range(99):
                 self.gnn_model.train()
                 optimizer.zero_grad()
-                out = self.gnn_model(graph).squeeze()
-                loss = loss_fn(out, graph.y)
-                loss.backward()
 
-                # Apply gradient clipping to avoid exploding gradients
+                # Forward pass
+                out = self.gnn_model(graph).squeeze()
+
+                # Compute loss
+                loss = loss_fn(out, graph.y.squeeze())
+
+                # Backward pass and optimization
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.gnn_model.parameters(), max_norm=1.0)
                 optimizer.step()
-
-                print(f'Epoch {epoch + 1}, Loss: {loss.item()}')
-
-                # Early stopping check (if loss stops improving)
-                if epoch > 10 and loss.item() > prev_loss:
-                    print(f"Early stopping triggered.{loss.item()}")
-                    #break
-                prev_loss = loss.item()
+                # Check if this is the best model
+                if loss.item() < best_loss:
+                    best_loss = loss.item()
+                    #torch.save(self.gnn_model.state_dict(), f'{best_model_path}.path')  # Save model state
+                    print(f"Saved best model with loss: {best_loss}")
+                    best_model_state = self.gnn_model.state_dict()  # Save the model's state dictionary
+                    best_model = self.gnn_model
+                # Periodic logging
+                if epoch % 10 == 0:
+                    print(f'Epoch {epoch}, Loss: {loss.item()}')
+        best_model_path = f"{self.best_model_path}/best_gnn_model.pkl"
+        with open(f"{best_model_path}", "wb") as f:
+            pickle.dump(best_model_state, f, protocol=pickle.HIGHEST_PROTOCOL)
+        print(f"Best model saved to {best_model_path}")
+        self.gnn_model = best_model
+        print(f"Training completed. Best model saved at {best_model_path} with loss {best_loss}.")
 
     def do_predict(self):
-        self.gnn_model.eval()  # Set model to evaluation mode
+        self.gnn_model.eval()
         predictions = []
         targets = []
         losses = []
-        criterion = nn.MSELoss()  # Use an appropriate loss function (e.g., MSE for regression)
-        i = 1
+        criterion = nn.MSELoss()
+
         for graph in self.graph_list:
-            with torch.no_grad():  # Disable gradient computation for prediction
-                output = self.gnn_model(graph)
+            with torch.no_grad():
+                output = self.gnn_model(graph).squeeze()
+                print("==========================================")
+                print(f'output:{output}')
+                print("==========================================")
 
-                # Assuming that y (targets) are available in the graph
-                target = graph.y  # Target values
-                #print(f"Predicted: {output}, Actual: {target}")
-
-                # Calculate the loss (compare with actual)
+                target = graph.y.squeeze()
                 loss = criterion(output, target)
-                losses.append(loss.item())
 
+                losses.append(loss.item())
                 predictions.append(output)
                 targets.append(target)
 
-                # Convert the predictions from tensor to numpy for easy DataFrame integration
                 predictions_np = output.numpy()
-                # Save updated DataFrame to CSV (append for each graph)
-                unique_filename = ''.join(random.choices(string.ascii_letters + string.digits, k=8))  # 8-character random string '.csv'
-                output_path = f'{self.dataset_path}/station_{unique_filename}.csv'
+                unique_filename = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+                output_path = f'{self.pm2p5_output}/_predictions_{unique_filename}.csv'
                 self.save_pred_to_csv(graph, predictions_np, output_path)
-                i = i + 1
-                # Update the original DataFrame (if needed)
-                #graph.df_updated = df  # Save the updated DataFrame back to the graph object (optional)
 
         avg_loss = sum(losses) / len(losses)
         print(f'Average Loss: {avg_loss}')
-
         return predictions, targets
 
     def save_pred_to_csv(self, graph, predictions_np, output_path):
-        # Extract data from the graph
-        x_data = graph.x  # Features (temperature, humidity, timestamp, etc.)
-        y_data = graph.y  # Targets (PM2.5, etc.)
+       # x_data = graph.x.numpy()
+       # y_data = graph.y.numpy()
+        # Convert tensors to NumPy arrays
+        x_data = graph.x.numpy() if isinstance(graph.x, torch.Tensor) else graph.x
+        y_data = graph.y.numpy() if isinstance(graph.y, torch.Tensor) else graph.y
 
-        # If x_data and y_data are tensors, convert them to numpy arrays for easy DataFrame creation
-        x_np = x_data.numpy() if isinstance(x_data, torch.Tensor) else x_data
-        y_np = y_data.numpy() if isinstance(y_data, torch.Tensor) else y_data
+        df = pd.DataFrame(x_data, columns=self.features)
+        df['actual_target'] = y_data.squeeze()
+        df['predicted_target'] = predictions_np.squeeze()
 
-        # Create a DataFrame with x, y, and predictions
-        df = pd.DataFrame(x_np,
-                          columns=self.features) #, 'timestamp'])  # Adjust column names as needed
-        df['pm2p5'] = y_np  # Actual target values
-        df['predicted_pm2p5'] = predictions_np  # Predicted values
         file_exists = os.path.exists(output_path)
-        df.to_csv(f'{output_path}', mode='a', header=not file_exists, index=False)
-
+        df.to_csv(output_path, mode='a', header=not file_exists, index=False)
+        print(f"Results saved to {output_path}")
 
     def add_sensor_index(self):
         for df in self.pd_list:
-            #print('adding sensor index')
-            df['sensor_index'] =\
-                (df[['longitude', 'latitude']].
-                 apply(lambda row: self.coordinate_to_index.get(tuple(np.round(row, decimals=5)), -1), axis=1))
-            #print(f'{df.head()}')
+            df['sensor_index'] = df[['longitude', 'latitude']].apply(
+                lambda row: self.coordinate_to_index.get(tuple(np.round(row, decimals=5)), -1), axis=1
+            )
 
     def create_edge_index_for_individual_graph(self, df_obj):
-        # Extract unique coordinates (longitude, latitude) from the dataset
-        coordinates = df_obj[['longitude', 'latitude']].drop_duplicates().values
+        # Ensure the dataframe has enough rows to create edges
+        num_rows = len(df_obj)
+        #df_obj = df_obj.sort_values(by=['sensor_id', 'pm2p5']).reset_index(drop=True)
+        if num_rows < 2:
+            print("Not enough rows to form edges.")
+            return torch.tensor([[], []], dtype=torch.long)  # Empty edge_index
 
-        # Calculate the distance matrix for the unique coordinates
-        dist_matrix = distance_matrix(coordinates, coordinates)
-        #print(f'dist_matrix shape: {dist_matrix.shape}')
+        edge_source, edge_target = [], []
 
-        edge_source = []
-        edge_target = []
+        # Connect each row to the next one (excluding the last row)
+        for i in range(num_rows - 1):  # Avoid the last row since it has no next row
+            edge_source.append(i)
+            edge_target.append(i + 1)
 
-        # Create edges based on proximity (threshold)
-        for i in range(len(coordinates)):
-            for j in range(i + 1, len(coordinates)):  # Only consider i < j to avoid duplicates
-                dist = dist_matrix[i, j]
-                if dist < self.edge_index_threshold:
-                    edge_source.append(i)
-                    edge_target.append(j)
-                    edge_source.append(j)
-                    edge_target.append(i)
-
-        # Convert the lists to a PyTorch tensor and return the edge index
+        # Convert the edge source and target lists to a tensor
         edge_index = torch.tensor([edge_source, edge_target], dtype=torch.long)
-        print(f"Created edge_index: {edge_index}, shape: {edge_index.shape}")
+        #print(f'edge_index : {edge_index}')
+        return df_obj, edge_index
 
-        x = df_obj[self.features]
-        print(x.shape[0])
-        # If edge_index is empty
-        if edge_index.size(1) == 0:
-            print("Empty edge_index detected. Adding self-loops as fallback.")
-        #    edge_index, _ = add_self_loops(edge_index, num_nodes=x.shape[0])
-        print(f"edge_index :{edge_index}")
-        return edge_index
+
 
     def create_edge_index_for_graph_of_graphs(self, dataset_coordinates):
-        edge_source = []
-        edge_target = []
-
-        # Calculate the distance matrix between all coordinates (datasets)
+        edge_source, edge_target = [], []
         dist_matrix = distance_matrix(dataset_coordinates, dataset_coordinates)
 
-        # Iterate through each pair of datasets and check the distance
         for i in range(len(dataset_coordinates)):
-            for j in range(i + 1, len(dataset_coordinates)):  # Only consider i < j to avoid duplicates
+            for j in range(i + 1, len(dataset_coordinates)):
                 dist = dist_matrix[i, j]
                 if dist < self.edge_index_threshold:
-                    # Add edge if distance is within threshold
-                    edge_source.append(i)
-                    edge_target.append(j)
-                    edge_source.append(j)
-                    edge_target.append(i)
+                    edge_source.extend([i, j])
+                    edge_target.extend([j, i])
 
-        # Convert the lists to a PyTorch tensor and return the edge index
         edge_index = torch.tensor([edge_source, edge_target], dtype=torch.long)
-        print(f'create_edge_index_for_graph_of_graphs : edge_index : {edge_index}')
         return edge_index
 
     @staticmethod
     def load_sensor_coordinates(df_obj):
-        # Ensure longitude and latitude are numeric
         df_obj['longitude'] = pd.to_numeric(df_obj['longitude'], errors='coerce')
         df_obj['latitude'] = pd.to_numeric(df_obj['latitude'], errors='coerce')
-
-        # Drop rows with invalid coordinates
         df_obj.dropna(subset=['longitude', 'latitude'], inplace=True)
-
-        # Convert to a NumPy array
-        coordinates = df_obj[['longitude', 'latitude']].values
-        return coordinates
+        return df_obj[['longitude', 'latitude']].values
 
     def create_edge_index(self, coordinates, coordinate_to_index):
         # Initialize empty lists for the edge index
@@ -285,9 +263,10 @@ class LatticeImpl:
 latticeImpl = LatticeImpl()
 latticeImpl.load_dataset()
 
-bayesianOptimization = BayesianOptimization()
+#bayesianOptimization = BayesianOptimization()
 #for graph in latticeImpl.graph_list:
-bayesianOptimization.tune_hyperparameters(GraphLevelGNN, latticeImpl.graph_list, len(latticeImpl.features) )
+#bayesianOptimization.tune_hyperparameters(latticeImpl.graph_list, len(latticeImpl.features))
 
-#latticeImpl.do_train()
-#latticeImpl.do_predict()
+latticeImpl.do_train()
+latticeImpl.do_predict()
+

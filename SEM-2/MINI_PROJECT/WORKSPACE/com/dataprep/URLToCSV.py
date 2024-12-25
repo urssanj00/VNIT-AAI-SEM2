@@ -16,7 +16,7 @@ class URLToCSV:
         self.properties = properties_config.get_properties_config()
 
         self.station_list_url = self.properties['station_list_url']
-        self.data_set_dir = self.properties['data_set_path']
+        self.data_set_dir = self.properties['data_set_path_input']
         # Generate a timestamp for the filename
         #timestamp = datetime.now().strftime(self.properties['time_format'])
         current_date = datetime.now().strftime(self.properties['date_format'])
@@ -91,5 +91,5 @@ class URLToCSV:
 
 urlToCSV = URLToCSV()
 urlToCSV.m1_generate_station_list_csv()
-urlToCSV.m2_generate_pm2p5_csv(1)
+urlToCSV.m2_generate_pm2p5_csv(120)
 

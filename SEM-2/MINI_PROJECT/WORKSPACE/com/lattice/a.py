@@ -4,7 +4,8 @@ from PropertiesConfig import PropertiesConfig as PC
 import torch
 import numpy as np
 from scipy.spatial import distance_matrix
-from GraphLevelGNN import GraphLevelGNN
+#from GraphLevelGNN import GraphLevelGNN
+from GraphLevelGNNWithLSTM import GraphLevelGNNWithLSTM
 from torch_geometric.data import Data
 from torch_geometric.utils import add_self_loops
 import torch.nn as nn
@@ -29,7 +30,7 @@ class LatticeImpl:
             'temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend'
         ]
         self.targets = ['pm2p5']
-        self.gnn_model = GraphLevelGNN(in_channels=len(self.features))
+        self.gnn_model = GraphLevelGNNWithLSTM(in_channels=len(self.features))
 
 
     def timstamp_to_numeric(self, df_obj):
@@ -43,6 +44,38 @@ class LatticeImpl:
         df['is_weekend'] = (df['weekday'] >= 5).astype(int)
         return df
 
+    def load_graph_from_individual_dataset(self, file_name, all_sensor_coordinates):
+        df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
+        df_obj = self.timstamp_to_numeric(df_obj)
+
+        df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
+        df_obj = df_obj.sort_values(by=['sensor_id', 'year', 'month', 'day', 'hour']).reset_index(drop=True)
+
+        df_obj[self.features] = df_obj[self.features].apply(pd.to_numeric, errors='coerce')
+
+        # Step 2: Feature Scaling
+        scaler = MinMaxScaler()
+        df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
+        df_obj.fillna(0, inplace=True)
+
+        x = torch.tensor(df_obj[self.features].values, dtype=torch.float)
+        y = torch.tensor(df_obj[self.targets].values, dtype=torch.float)
+
+        # Collect coordinates from the dataset
+        sensor_coordinates = LatticeImpl.load_sensor_coordinates(df_obj)
+        all_sensor_coordinates.extend(sensor_coordinates)
+
+        self.pd_list.append(df_obj)
+        df_obj, edge_index = self.create_edge_index_for_individual_graph(df_obj)
+
+        df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
+            lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1
+        )
+
+        graph = Data(x=x, edge_index=edge_index, y=y)
+        self.graph_list.append(graph)
+        return graph, all_sensor_coordinates
+
     def load_dataset(self):
         list_files = Util.list_files_of_a_dir(self.dataset_path)
 
@@ -51,35 +84,7 @@ class LatticeImpl:
 
         for file_name in list_files:
             if 'station' not in file_name:
-                df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
-                df_obj = self.timstamp_to_numeric(df_obj)
-
-                df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
-                df_obj = df_obj.sort_values(by=['sensor_id', 'year', 'month', 'day', 'hour']).reset_index(drop=True)
-
-                df_obj[self.features] = df_obj[self.features].apply(pd.to_numeric, errors='coerce')
-
-                # Step 2: Feature Scaling
-                scaler = MinMaxScaler()
-                df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
-                df_obj.fillna(0, inplace=True)
-
-                x = torch.tensor(df_obj[self.features].values, dtype=torch.float)
-                y = torch.tensor(df_obj[self.targets].values, dtype=torch.float)
-
-                # Collect coordinates from the dataset
-                sensor_coordinates = LatticeImpl.load_sensor_coordinates(df_obj)
-                all_sensor_coordinates.extend(sensor_coordinates)
-
-                self.pd_list.append(df_obj)
-                df_obj, edge_index = self.create_edge_index_for_individual_graph(df_obj)
-
-                df_obj['sensor_index'] = df_obj[['longitude', 'latitude']].apply(
-                    lambda row: self.coordinate_to_index.get(tuple(row), -1), axis=1
-                )
-
-                graph = Data(x=x, edge_index=edge_index, y=y)
-                self.graph_list.append(graph)
+                graph, all_sensor_coordinates = self.load_graph_from_individual_dataset(file_name, all_sensor_coordinates)
 
         unique_coordinates = np.unique(all_sensor_coordinates, axis=0)
         self.coordinate_to_index = {tuple(coord): idx for idx, coord in enumerate(unique_coordinates)}
@@ -96,19 +101,37 @@ class LatticeImpl:
         # Step 5: Train the Model
         optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.0381587687863735)
         loss_fn = torch.nn.MSELoss()
+
+        best_loss = float('inf')  # Initialize best loss as infinity
+        best_model_path = "best_gnn_model.pkl"  # Path to save the best model
+
         for graph in self.graph_list:
-            for epoch in range(89):
+            for epoch in range(99):
                 self.gnn_model.train()
                 optimizer.zero_grad()
-                out = self.gnn_model(graph).squeeze()
-                loss = loss_fn(out, graph.y.squeeze())
-                loss.backward()
 
+                # Forward pass
+                out = self.gnn_model(graph).squeeze()
+
+                # Compute loss
+                loss = loss_fn(out, graph.y.squeeze())
+
+                # Backward pass and optimization
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.gnn_model.parameters(), max_norm=1.0)
                 optimizer.step()
 
+                # Check if this is the best model
+                if loss.item() < best_loss:
+                    best_loss = loss.item()
+                    torch.save(self.gnn_model.state_dict(), best_model_path)  # Save model state
+                    print(f"Saved best model with loss: {best_loss}")
+
+                # Periodic logging
                 if epoch % 10 == 0:
                     print(f'Epoch {epoch}, Loss: {loss.item()}')
+
+        print(f"Training completed. Best model saved at {best_model_path} with loss {best_loss}.")
 
     def do_predict(self):
         self.gnn_model.eval()
@@ -129,7 +152,7 @@ class LatticeImpl:
 
                 predictions_np = output.numpy()
                 unique_filename = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-                output_path = f'{self.dataset_path}/station_predictions_{unique_filename}.csv'
+                output_path = f'{self.dataset_path}/station/_predictions_{unique_filename}.csv'
                 self.save_pred_to_csv(graph, predictions_np, output_path)
 
         avg_loss = sum(losses) / len(losses)
@@ -227,10 +250,10 @@ class LatticeImpl:
 latticeImpl = LatticeImpl()
 latticeImpl.load_dataset()
 
-bayesianOptimization = BayesianOptimization()
+#bayesianOptimization = BayesianOptimization()
 #for graph in latticeImpl.graph_list:
-bayesianOptimization.tune_hyperparameters(latticeImpl.graph_list, len(latticeImpl.features))
+#bayesianOptimization.tune_hyperparameters(latticeImpl.graph_list, len(latticeImpl.features))
 
-#latticeImpl.do_train()
-#latticeImpl.do_predict()
+latticeImpl.do_train()
+latticeImpl.do_predict()
 

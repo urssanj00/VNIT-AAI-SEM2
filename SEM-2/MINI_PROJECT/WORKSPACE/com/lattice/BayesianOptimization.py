@@ -3,7 +3,9 @@ import torch.optim as optim
 from torch_geometric.loader import DataLoader
 import torch.nn.functional as F
 import torch
-from GraphLevelGNN import GraphLevelGNN
+#from GraphLevelGNN import GraphLevelGNN
+from GraphLevelGNNWithLSTM import GraphLevelGNNWithLSTM
+
 class BayesianOptimization:
 # Define the objective function for Bayesian optimization
     def objective(self, trial, dataset, num_features):
@@ -17,7 +19,7 @@ class BayesianOptimization:
         print(f"Training with lr={lr}, h1={h1}, h2={h2}, batch_size={batch_size}, epochs={epochs}")
 
         # Initialize the model
-        model = GraphLevelGNN(in_channels=num_features, h1=h1, h2=h2, out_channels=1)
+        model = GraphLevelGNNWithLSTM(in_channels=num_features, h1=h1, h2=h2, out_channels=1)
 
         # Optimizer
         optimizer = optim.Adam(model.parameters(), lr=lr)
