@@ -15,8 +15,8 @@ import random
 import string
 from BayesianOptimization import BayesianOptimization
 from sklearn.model_selection import  train_test_split
-import pickle
-
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 class LatticeImpl:
     def __init__(self):
         properties_config = PC()
@@ -28,28 +28,18 @@ class LatticeImpl:
         self.pd_list = []
         self.coordinate_to_index = {}  # Mapping of coordinates to global indices
         self.features = [
-            'temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend'
+            'temperature', 'humidity', 'year', 'month', 'day', 'hour', 'weekday', 'is_weekend', 'longitude', 'latitude'
         ]
         self.targets = ['pm2p5']
         self.gnn_model = GraphLevelGNN(in_channels=len(self.features))
         self.best_model_path = properties['best_model_path']
+        self.training_data_path = properties['training_data']
+       # self.dataset_path = self.training_data_path
         self.pm2p5_output = properties['pm2p5_output']
 
-    def timstamp_to_numeric(self, df_obj):
-        df = df_obj
-        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)  # Remove timezone info
-        df['year'] = df['timestamp'].dt.year
-        df['month'] = df['timestamp'].dt.month
-        df['day'] = df['timestamp'].dt.day
-        df['hour'] = df['timestamp'].dt.hour
-        df['weekday'] = df['timestamp'].dt.weekday  # 0=Monday, 6=Sunday
-        df['is_weekend'] = (df['weekday'] >= 5).astype(int)
-        return df
-
-    def load_graph_from_individual_dataset(self, all_sensor_coordinates, file_name):
-        print(f'load_graph_from_individual_dataset: {self.dataset_path}/{file_name}')
+    def load_graph_from_individual_dataset(self, file_name, all_sensor_coordinates):
         df_obj = pd.read_csv(f'{self.dataset_path}/{file_name}')
-        df_obj = self.timstamp_to_numeric(df_obj)
+        df_obj = Util.timstamp_to_numeric(df_obj)
 
         df_obj['timestamp'] = pd.to_datetime(df_obj['timestamp'])
         df_obj = df_obj.sort_values(by=['sensor_id', 'year', 'month', 'day', 'hour']).reset_index(drop=True)
@@ -58,7 +48,10 @@ class LatticeImpl:
 
         # Step 2: Feature Scaling
         scaler = MinMaxScaler()
-        df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
+        #not including latitude and longitude for trnasform becase adding them will zero them in the whole dataset
+        #df_obj[self.features] = scaler.fit_transform(df_obj[self.features])
+        features = ['temperature', 'humidity']
+        df_obj[features] = scaler.fit_transform(df_obj[features])
         df_obj.fillna(0, inplace=True)
 
         x = torch.tensor(df_obj[self.features].values, dtype=torch.float)
@@ -76,7 +69,7 @@ class LatticeImpl:
         )
 
         graph = Data(x=x, edge_index=edge_index, y=y)
-        self.graph_list.append(graph)
+
         return graph, all_sensor_coordinates
 
     def load_dataset(self):
@@ -86,10 +79,9 @@ class LatticeImpl:
         all_sensor_coordinates = []
 
         for file_name in list_files:
-            print(f"file_name : {file_name}")
             if 'station' not in file_name:
-                graph, all_sensor_coordinates = self.load_graph_from_individual_dataset(all_sensor_coordinates,
-                                                                                        file_name)
+                graph, all_sensor_coordinates = self.load_graph_from_individual_dataset(file_name, all_sensor_coordinates)
+                self.graph_list.append(graph)
 
         unique_coordinates = np.unique(all_sensor_coordinates, axis=0)
         self.coordinate_to_index = {tuple(coord): idx for idx, coord in enumerate(unique_coordinates)}
@@ -104,59 +96,78 @@ class LatticeImpl:
 
     def do_train(self):
         # Step 5: Train the Model
-        optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.0381587687863735)
+        optimizer = torch.optim.Adam(self.gnn_model.parameters(), lr=0.01) #lr=0.0381587687863735)
         loss_fn = torch.nn.MSELoss()
 
         best_loss = float('inf')  # Initialize best loss as infinity
-        best_model_state = None
-        best_model = None
+        best_model_file_name = "best_gnn_model.pkl"  # Path to save the best model
+
         for graph in self.graph_list:
+            print(f"Training on graph with {graph.num_nodes} nodes and {graph.num_edges} edges.")
+
             for epoch in range(99):
                 self.gnn_model.train()
+
                 optimizer.zero_grad()
 
                 # Forward pass
                 out = self.gnn_model(graph).squeeze()
+                target = graph.y.squeeze()
+
+                #print(f"Shape: Target shape {graph.y.shape}")
+               # print(f"x is {graph.x}")
+
+               # print(f"Y is {graph.y}")
+
+                #print(f"Shape: Output shape {out.shape}, Target shape {target.shape}")
+                if out.shape != target.shape:
+                    raise ValueError(f"Shape mismatch: Output shape {out.shape}, Target shape {target.shape}")
 
                 # Compute loss
-                loss = loss_fn(out, graph.y.squeeze())
+                loss = loss_fn(out, target)
 
                 # Backward pass and optimization
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.gnn_model.parameters(), max_norm=1.0)
                 optimizer.step()
+
                 # Check if this is the best model
+                ''' 
                 if loss.item() < best_loss:
                     best_loss = loss.item()
-                    #torch.save(self.gnn_model.state_dict(), f'{best_model_path}.path')  # Save model state
+                    torch.save(self.gnn_model.state_dict(), best_model_path)  # Save model state
                     print(f"Saved best model with loss: {best_loss}")
-                    best_model_state = self.gnn_model.state_dict()  # Save the model's state dictionary
-                    best_model = self.gnn_model
+                '''
+                print(f"Epoch {epoch}: Loss = {loss.item()}, Output = {out.shape}, Target = {target.shape}")
+
                 # Periodic logging
                 if epoch % 10 == 0:
                     print(f'Epoch {epoch}, Loss: {loss.item()}')
-        best_model_path = f"{self.best_model_path}/best_gnn_model.pkl"
-        with open(f"{best_model_path}", "wb") as f:
-            pickle.dump(best_model_state, f, protocol=pickle.HIGHEST_PROTOCOL)
-        print(f"Best model saved to {best_model_path}")
-        self.gnn_model = best_model
-        print(f"Training completed. Best model saved at {best_model_path} with loss {best_loss}.")
+        torch.save(self.gnn_model.state_dict(), f"{self.best_model_path}/{best_model_file_name}")  # Save model state
+        print(f"Saved best model with loss: {best_loss}")
+        print(f"Training completed. Best model saved at {self.best_model_path} with loss {best_loss}.")
 
     def do_predict(self):
-        self.gnn_model.eval()
         predictions = []
         targets = []
         losses = []
         criterion = nn.MSELoss()
 
+        self.gnn_model.eval()
         for graph in self.graph_list:
             with torch.no_grad():
                 output = self.gnn_model(graph).squeeze()
-                print("==========================================")
-                print(f'output:{output}')
-                print("==========================================")
-
                 target = graph.y.squeeze()
+
+                # Use clone().detach() to handle tensors properly
+                output = output.clone().detach()
+                target = target.clone().detach()
+
+                print(f'=====================================')
+                print(f"Input shape:{graph.x.shape}  Output shape: {output.shape}  Target shape:: {target.shape} ")
+                print(f'=====================================')
+
+                self.prediction_attributes(target, output)
                 loss = criterion(output, target)
 
                 losses.append(loss.item())
@@ -166,26 +177,36 @@ class LatticeImpl:
                 predictions_np = output.numpy()
                 unique_filename = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
                 output_path = f'{self.pm2p5_output}/_predictions_{unique_filename}.csv'
-                self.save_pred_to_csv(graph, predictions_np, output_path)
+                Util.save_pred_to_csv(graph, predictions_np, output_path, self.features)
 
         avg_loss = sum(losses) / len(losses)
         print(f'Average Loss: {avg_loss}')
         return predictions, targets
 
-    def save_pred_to_csv(self, graph, predictions_np, output_path):
-       # x_data = graph.x.numpy()
-       # y_data = graph.y.numpy()
-        # Convert tensors to NumPy arrays
-        x_data = graph.x.numpy() if isinstance(graph.x, torch.Tensor) else graph.x
-        y_data = graph.y.numpy() if isinstance(graph.y, torch.Tensor) else graph.y
+    def prediction_attributes(self, y, predictions):
+        # Separate scalers for features and target variable
+        feature_scaler = MinMaxScaler()
+        target_scaler = MinMaxScaler()
+        # Fit the scaler on the pm2p5 target values (denormalization requires this)
+        y_reshaped = y.numpy().reshape(-1, 1)  # Ensure 2D for scaler compatibility
+        target_scaler.fit(y_reshaped)
 
-        df = pd.DataFrame(x_data, columns=self.features)
-        df['actual_target'] = y_data.squeeze()
-        df['predicted_target'] = predictions_np.squeeze()
+        # Predictions were normalized; now reshape for inverse_transform
+        predictions_reshaped = predictions.reshape(-1, 1)
+        denormalized_pm25 = target_scaler.inverse_transform(predictions_reshaped).flatten()
 
-        file_exists = os.path.exists(output_path)
-        df.to_csv(output_path, mode='a', header=not file_exists, index=False)
-        print(f"Results saved to {output_path}")
+        # Calculate Accuracy Metrics
+        actuals = y.numpy()  # Ground truth
+        mae = mean_absolute_error(actuals, denormalized_pm25)
+        mse = mean_squared_error(actuals, denormalized_pm25)
+        r2 = r2_score(actuals, denormalized_pm25)
+
+        # Print Results
+        print("Denormalized Predictions (pm2.5):", denormalized_pm25)
+        print("Mean Absolute Error (MAE):", mae)
+        print("Mean Squared Error (MSE):", mse)
+        print("R² Score:", r2)
+
 
     def add_sensor_index(self):
         for df in self.pd_list:
@@ -212,7 +233,6 @@ class LatticeImpl:
         edge_index = torch.tensor([edge_source, edge_target], dtype=torch.long)
         #print(f'edge_index : {edge_index}')
         return df_obj, edge_index
-
 
 
     def create_edge_index_for_graph_of_graphs(self, dataset_coordinates):

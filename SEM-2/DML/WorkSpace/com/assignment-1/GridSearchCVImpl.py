@@ -22,7 +22,7 @@ class GridSearchCVImpl:
         self.mrfc = RandomForestClassifier()
         print("Custom Random Forest Classifier initialized.")
 
-    # d) Define the hyperparameter grid
+    # d) 1. Parameter Grid Definition:
         self.param_grid = {
             'n_estimators': [50, 100, 150],
             'max_depth': [None, 10, 20],
@@ -53,7 +53,9 @@ class GridSearchCVImpl:
         try:
             X = self.X.values
             y = self.y.values
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            self.X_train, self.X_test, self.y_train, self.y_test = (
+                train_test_split(X, y, test_size=0.2, random_state=42)
+            )
             print("Dataset split into train and test sets.")
         except Exception as e:
             print(f"Error splitting dataset: {e}")
@@ -67,7 +69,7 @@ class GridSearchCVImpl:
                 estimator=self.mrfc,
                 param_grid=self.param_grid,
                 scoring='accuracy',
-                cv=5,  # 5-fold cross-validation
+                cv=5,  # 5-fold cross-validation    2. Grid Search Implementation:
                 n_jobs=-1,  # Use all CPU cores
                 verbose=1   # Display progress
             )
@@ -103,25 +105,39 @@ class GridSearchCVImpl:
 
 # Set up experiment tracking
 mlflow.set_experiment('RandomForest_Hyperparameter_Tuning')
-gscvi = GridSearchCVImpl()
-gscvi.load_dataset()
-gscvi.split_dataset()
 
-# Log hyperparameters
-mlflow.log_params(gscvi.param_grid)  # Log the hyperparameter grid
-gscvi.execute_gridsearchcv()
+# Start an MLflow run
+with mlflow.start_run():
+    gscvi = GridSearchCVImpl()
+    gscvi.load_dataset()
+    gscvi.split_dataset()
 
-# Log the best hyperparameters and the best score
-mlflow.log_param(f"best_params", gscvi.grid_search.best_params_)
-mlflow.log_metric("best_score", gscvi.grid_search.best_score_)
+    # Log hyperparameter grid
+    mlflow.log_params({
+        "n_estimators_range": gscvi.param_grid['n_estimators'],
+        "max_depth_range": gscvi.param_grid['max_depth'],
+        "min_samples_split_range": gscvi.param_grid['min_samples_split']
+    })
 
-# Log the cross-validation scores
-for i, score in enumerate( gscvi.grid_search.cv_results_['mean_test_score']):
-    mlflow.log_metric(f'cv_score_{i + 1}', score)
+    # Execute GridSearchCV
+    gscvi.execute_gridsearchcv()
 
-# Log the best model using MLflow
-# Provide an input example (e.g., the first row from the training set)
-input_example = gscvi.X_train[0].reshape(1, -1)  # First sample in the training set
-mlflow.sklearn.log_model(gscvi.grid_search.best_estimator_, "best_random_forest_model", input_example=input_example)
+    # Log the best hyperparameters and the best score
+    mlflow.log_params(gscvi.grid_search.best_params_)
+    mlflow.log_metric("best_cv_accuracy", gscvi.grid_search.best_score_)
 
-gscvi.eval_and_report()
+    # Log cross-validation scores
+    for i, score in enumerate(gscvi.grid_search.cv_results_['mean_test_score']):
+        mlflow.log_metric(f'cv_score_{i + 1}', score)
+        print(f"cv_score_{i + 1}, {score}")
+
+    # Log the best model
+    input_example = gscvi.X_train[0].reshape(1, -1)  # Example input for reproducibility
+    mlflow.sklearn.log_model(gscvi.grid_search.best_estimator_, "best_random_forest_model",
+                             input_example=input_example)
+
+    # Log test accuracy
+    gscvi.eval_and_report()
+    test_accuracy = accuracy_score(gscvi.y_test, gscvi.y_pred)
+    mlflow.log_metric("test_accuracy", test_accuracy)
+

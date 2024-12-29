@@ -4,7 +4,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from PropertiesConfig import PropertiesConfig as PC
 
-
 class MetaGraph:
     def __init__(self, edge_list=None):
         """
@@ -53,6 +52,7 @@ class MetaGraph:
         nx.draw(self.g_meta, with_labels=True, node_color="lightblue", font_weight="bold")
         plt.savefig(f'{image_save_path}')
         plt.close()
+
 
 properties_config = PC()
 # Get properties as a dictionary

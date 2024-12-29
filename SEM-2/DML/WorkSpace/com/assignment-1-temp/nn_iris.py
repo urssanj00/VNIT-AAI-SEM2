@@ -46,7 +46,7 @@ class Model(nn.Module):
 # pick a manual seed for randomization
 torch.manual_seed(41)
 
-my_df = pandas.read_csv("Iris.csv")
+my_df = pandas.read_csv("../assignment-1/Iris.csv")
 
 print(f'head {my_df.head()}')
 

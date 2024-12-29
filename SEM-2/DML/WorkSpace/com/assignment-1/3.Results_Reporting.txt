@@ -1,0 +1,81 @@
+PS C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\com\assignment-1> python .\GridSearchCVImpl.py
+Custom Random Forest Classifier initialized.
+Dataset loaded successfully.
+Dataset split into train and test sets.
+Starting GridSearchCV...
+Fitting 5 folds for each of 27 candidates, totalling 135 fits
+GridSearchCV completed.
+cv_score_1, 0.95
+cv_score_2, 0.9583333333333334
+cv_score_3, 0.95
+cv_score_4, 0.95
+cv_score_5, 0.95
+cv_score_6, 0.95
+cv_score_7, 0.95
+cv_score_8, 0.95
+cv_score_9, 0.95
+cv_score_10, 0.95
+cv_score_11, 0.9416666666666667
+cv_score_12, 0.9416666666666667
+cv_score_13, 0.95
+cv_score_14, 0.95
+cv_score_15, 0.95
+cv_score_16, 0.95
+cv_score_17, 0.95
+cv_score_18, 0.95
+cv_score_19, 0.9416666666666668
+cv_score_20, 0.9333333333333333
+cv_score_21, 0.9416666666666667
+cv_score_22, 0.9416666666666667
+cv_score_23, 0.9583333333333334
+cv_score_24, 0.9583333333333334
+cv_score_25, 0.95
+cv_score_26, 0.9583333333333334
+cv_score_27, 0.95
+Downloading artifacts: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:00<?, ?it/s]
+Best Hyperparameters:{'max_depth': None, 'min_samples_split': 2, 'n_estimators': 100}
+Best Cross-Validation Score:0.9583333333333334
+Actual : Predicted
+1.0     : 1.0
+0.0     : 0.0
+2.0     : 2.0
+1.0     : 1.0
+1.0     : 1.0
+0.0     : 0.0
+1.0     : 1.0
+2.0     : 2.0
+1.0     : 1.0
+1.0     : 1.0
+2.0     : 2.0
+0.0     : 0.0
+0.0     : 0.0
+0.0     : 0.0
+0.0     : 0.0
+1.0     : 1.0
+2.0     : 2.0
+1.0     : 1.0
+1.0     : 1.0
+2.0     : 2.0
+0.0     : 0.0
+2.0     : 2.0
+0.0     : 0.0
+2.0     : 2.0
+2.0     : 2.0
+2.0     : 2.0
+2.0     : 2.0
+2.0     : 2.0
+0.0     : 0.0
+0.0     : 0.0
+Test Set Accuracy: 1.0
+Classification Report:
+              precision    recall  f1-score   support
+
+         0.0       1.00      1.00      1.00        10
+         1.0       1.00      1.00      1.00         9
+         2.0       1.00      1.00      1.00        11
+
+    accuracy                           1.00        30
+   macro avg       1.00      1.00      1.00        30
+weighted avg       1.00      1.00      1.00        30
+
+PS C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\DML\WorkSpace\com\assignment-1>

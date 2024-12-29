@@ -4,7 +4,7 @@ from torch_geometric.loader import DataLoader
 import torch.nn.functional as F
 import torch
 #from GraphLevelGNN import GraphLevelGNN
-from GraphLevelGNNWithLSTM import GraphLevelGNNWithLSTM
+from com.bootcamp.GraphLevelGNNWithLSTM import GraphLevelGNNWithLSTM
 
 class BayesianOptimization:
 # Define the objective function for Bayesian optimization
