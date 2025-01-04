@@ -278,7 +278,7 @@ class PM2P5ForcastFacilitator:
             print(f"|    R^2:    {r2:.4f}                                           |")
         else:
             print(f"|    R^2:    {r2:.4f}                                            |")
-        print(f"|    MAPE:   {mape:.2f}%                                             |")
+        print(f"|    MAPE:   {mape:.2f}                                              |")
 
 
     def do_plot_matrices(self, rmse_values, mae_values, r2_values, mape_values, title):
