@@ -14,10 +14,10 @@ class PropertiesConfig:
     def __init__(self, properties_file_name="sensor-data.properties"):
         if PropertiesConfig.is_running_in_colab():
             properties_file_name = os.path.join(os.path.dirname(__file__), 'sensor-data_collab.properties')
-            print(f"LOADING PROPERTIES {properties_file_name} FROM COLLAB ENVIRONMENT")
+            print(f"            LOADING PROPERTIES {properties_file_name} FROM COLLAB ENVIRONMENT")
         else:
             properties_file_name = os.path.join(os.path.dirname(__file__), 'sensor-data.properties')
-            print(f"LOADING PROPERTIES {properties_file_name} FROM LOCAL ENVIRONMENT")
+            print(f"            LOADING PROPERTIES {properties_file_name} FROM LOCAL ENVIRONMENT")
 
         configs = Properties()
         with open(properties_file_name, 'rb') as read_prop:
@@ -33,11 +33,11 @@ class PropertiesConfig:
         return properties_dict
 
 # Create an instance of PropertiesConfig
-propertiesConfig = PropertiesConfig("sensor-data.properties")
+#propertiesConfig = PropertiesConfig("sensor-data.properties")
 # Get properties as a dictionary
-properties = propertiesConfig.get_properties_config()
+#properties = propertiesConfig.get_properties_config()
 
-st = properties['station_list_url']
-pt = properties['data_set_path']
-print(f'station_list_url:{st}')
-print(f'data_set_path:{pt}')
+#st = properties['station_list_url']
+#pt = properties['data_set_path']
+#print(f'station_list_url:{st}')
+#print(f'data_set_path:{pt}')

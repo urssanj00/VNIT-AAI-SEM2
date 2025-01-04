@@ -19,18 +19,21 @@ class PM2P5ForcastFacilitator:
 
     # Function to generate a unique filename
     def generate_filename(self):
-        unique_id = uuid.uuid4()
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        f_name = f"{unique_id}_{current_date}"
-        return f_name
+        # Get current timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Generate a short UUID (first 8 characters)
+        unique_id = str(uuid.uuid4())[:8]
+        # Create a readable filename
+        filename = f"_{timestamp}_{unique_id}"
+        return filename
 
     def list_files_of_a_dir(self):
         # Get the list of all files and directories
         dir_path = self.input_dir
         dir_list = os.listdir(dir_path)
-        print("Files and directories in '", dir_path, "' :")
+        #print("Files and directories in '", dir_path, "' :")
         # prints all files
-        print(dir_list)
+        #print(dir_list)
         return dir_list
 
     def preprocess_timeseries_data(self, df):
@@ -99,10 +102,11 @@ class PM2P5ForcastFacilitator:
 
 
     def train_advanced_temporal_graph_model(self, num_plots=9):
+        print(f"Step 04: Preprocess the data")
 
         # Preprocessing
         features, df_processed = self.preprocess_timeseries_data(self.combined_df)
-        #print(f'features :{features}')
+        print(f"Step 05: Split data in Train and Test")
         # Create sequences
         self.X_train, self.y_train, self.X_test, self.y_test = self.create_sequence_data(features)
 
@@ -116,6 +120,8 @@ class PM2P5ForcastFacilitator:
             num_nodes=features.shape[1]
             #num_nodes=features.shape[0]
         )
+        print(f"Step 06: Start Training in Epoch")
+
         self.do_epoch(edge_index, features)
 
     def do_epoch(self, edge_index, features):
@@ -126,7 +132,8 @@ class PM2P5ForcastFacilitator:
 
         train_predictions = None
         test_predictions = None
-        print(f"|--------------------------------------------------------------|")
+        #print(f"|--------------------------------------------------------------|")
+        PM2P5ForcastFacilitator.print_dash_line()
         for epoch in range(self.epoch_config['epochs']):
             # Training phase
             self.model.train()
@@ -165,7 +172,7 @@ class PM2P5ForcastFacilitator:
                                                             self.mae_train_list,
                                                             self.r2_train_list,
                                                             self.mape_train_list)
-            matrices_test = PM2P5ForcastFacilitator.evaluate_model(self.y_train, train_predictions)
+            matrices_test = PM2P5ForcastFacilitator.evaluate_model(self.y_test, test_predictions)
             PM2P5ForcastFacilitator.append_matrices_in_list(self,
                                                             matrices_train,
                                                             self.rmse_test_list,
@@ -177,8 +184,8 @@ class PM2P5ForcastFacilitator:
             if epoch % 5 == 0:
                 print(f"|                                                              |")
                 print(f"|                           Epoch [{epoch + 1}/{self.epoch_config['epochs']}]")
-                print(f"|--------------------------------------------------------------|")
-
+                #print(f"|--------------------------------------------------------------|")
+                PM2P5ForcastFacilitator.print_dash_line()
                 #print(
                  #   f'Epoch [{epoch + 1}/{self.epoch_config["epochs"]}], Train Loss:{train_loss.item():.4f}, Test Loss: {test_loss.item():.4f}')
                 print(f"|    Train Loss:     {train_loss.item():.4f}, "
@@ -191,19 +198,23 @@ class PM2P5ForcastFacilitator:
                 print(f"|                                                              |")
                 print("|     Test Eval                                                |")
                 PM2P5ForcastFacilitator.print_matrices(self, matrices_test)
-                print(f"|--------------------------------------------------------------|")
+                PM2P5ForcastFacilitator.print_dash_line()
+                #print(f"|--------------------------------------------------------------|")
 
+        print(f"Step 07: Plot Train Losses vs Test Losses over Epochs")
         self.do_plot()
 
         train_preds = self.scaler.inverse_transform(train_predictions.detach().numpy())
         test_preds = self.scaler.inverse_transform(test_predictions.detach().numpy())
+        print(f"Step 08: Plot Features and Residuals")
         self.do_plot1(train_preds, test_preds)
-
+        print(f"Step 09: Plot Train Matrices over Epochs")
         self.do_plot_matrices(self.rmse_train_list,
                               self.mae_train_list,
                               self.r2_train_list,
                               self.mape_train_list,
                               "Train")
+        print(f"Step 10: Plot Test Matrices over Epochs")
         self.do_plot_matrices(self.rmse_test_list,
                               self.mae_test_list,
                               self.r2_test_list,
@@ -230,7 +241,7 @@ class PM2P5ForcastFacilitator:
         rmse = np.sqrt(mean_squared_error(y_actual, y_pred))
         mae = mean_absolute_error(y_actual, y_pred)
         r2 = r2_score(y_actual, y_pred)
-        mape = np.mean(np.abs((y_actual - y_pred) / y_actual)) * 100
+        mape = np.mean(np.abs((y_actual - y_pred) / y_actual)) # * 100
         return {"RMSE": rmse, "MAE": mae, "R^2": r2, "MAPE": mape}
 
     @staticmethod
@@ -245,8 +256,12 @@ class PM2P5ForcastFacilitator:
         r2_list.append(r2)
         mape_list.append(mape)
 
-
-
+    @staticmethod
+    def print_dash_line():
+        print(f"|--------------------------------------------------------------|")
+    @staticmethod
+    def print_dot_line():
+        print(f"|..............................................................|")
     @staticmethod
     def print_matrices(self, metrics):
         rmse = metrics["RMSE"]
@@ -255,14 +270,15 @@ class PM2P5ForcastFacilitator:
         mape = metrics["MAPE"]
 
         # Print the results
-        print(f"|--------------------------------------------------------------|")
+        #print(f"|--------------------------------------------------------------|")
+        PM2P5ForcastFacilitator.print_dash_line()
         print(f"|    RMSE:   {rmse:.4f}                                            |")
         print(f"|    MAE:    {mae:.4f}                                            |")
         if r2 < 0:
             print(f"|    R^2:    {r2:.4f}                                           |")
         else:
             print(f"|    R^2:    {r2:.4f}                                            |")
-        print(f"|    MAPE:   {mape:.2f}%                                           |")
+        print(f"|    MAPE:   {mape:.2f}%                                             |")
 
 
     def do_plot_matrices(self, rmse_values, mae_values, r2_values, mape_values, title):
@@ -300,10 +316,10 @@ class PM2P5ForcastFacilitator:
         train_actual = self.scaler.inverse_transform(self.y_train.numpy())
         test_actual = self.scaler.inverse_transform(self.y_test.numpy())
         train_size = self.X_train.shape[0]
-        print(f' features.shape[1] {len( self.features_columns)}')
+        #print(f' features.shape[1] {len( self.features_columns)}')
         # Actual vs Predicted Plots
         for i in range( len(self.features_columns)):
-            print(f"{i}. Plotting Features")
+           # print(f"{i}. Plotting Features")
             plt.figure(figsize=(14, 6))
             plt.plot(range(train_size), train_actual[:, i],
                      label=f"Train Actual {self.features_columns[i]}", color="blue", marker='o', alpha=0.7)
@@ -322,7 +338,7 @@ class PM2P5ForcastFacilitator:
 
             plt.savefig(f'{self.plot_path}/plot_features_{u_f_name}_{i}.png', format="png", dpi=300, bbox_inches="tight")
 
-            print(f"{i}. Plotting Residuals")
+           # print(f"{i}. Plotting Residuals")
 
             train_residuals = train_actual[:, i] - train_preds[:, i]
             test_residuals = test_actual[:, i] - test_preds[:, i]
@@ -344,7 +360,7 @@ class PM2P5ForcastFacilitator:
     def load_all_csv(self):
         list_file = pm2p5ForcastFacilitator.list_files_of_a_dir()
         dataframes = []
-        print("0. Loading all csvs in DF")
+        print("Step 02: Loading all csvs in DF")
         i = 0
         for f_name in list_file:
             if f_name.endswith(".csv") and "station" not in f_name.lower():
@@ -368,10 +384,10 @@ class PM2P5ForcastFacilitator:
         else:
             print("No valid CSV files found.")
 
-        print("1. Clubbed all csv in a dataset")
+        print(f"Step 03: Clubbed all csv in a dataset. Dataset Shape : [{self.combined_df.shape}]")
     # Loss and Optimizer
     def __init__(self):
-
+        print(f"Step 01: Initializing the processing")
         properties_config = PC()
         properties = properties_config.get_properties_config()
         self.plot_path = properties['plot_path']
@@ -413,7 +429,7 @@ pm2p5ForcastFacilitator = PM2P5ForcastFacilitator()
 
 pm2p5ForcastFacilitator.load_all_csv()
 pm2p5ForcastFacilitator.train_advanced_temporal_graph_model()
-print("3. End of Execution")
+print("Step 11: End of Execution")
 
 
 '''  
