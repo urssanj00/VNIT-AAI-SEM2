@@ -17,10 +17,15 @@ x2 = A2 * sin(2 * pi * f2 * t);   % Second sine wave
 
 combined_signal = x1 + x2;
 
+
+% Adding random noise (Normal distribution noise with mean 0 and std dev 0.5)
+noise = 0.5 * randn(size(t));  % Standard normal noise scaled by 0.5
+noisy_signal = combined_signal + noise;
+
+% Plot the noisy signal
 figure;
-subplot(1, 1, 1);
-stem(t, combined_signal, 'filled');
-title('Combined Signal');
-xlabel('Time(s)');
+plot(t, noisy_signal);
+title('Noisy Combined Sinusoidal Signal with Two Frequencies');
+xlabel('Time (seconds)');
 ylabel('Amplitude');
- 
+grid on;

@@ -1,0 +1,25 @@
+>> EXPERIMENT_3_Q_1
+Enter the sequence: [1 2 3 4]
+Enter the length of the Fourier transform: 4
+Computed Discrete Fourier Transform:
+  10.0000 + 0.0000i  -2.0000 + 2.0000i  -2.0000 - 0.0000i  -2.0000 - 2.0000i
+
+>> EXPERIMENT_3_Q_1
+Enter the sequence: [ 1 2 3 4]
+Enter the length of the Fourier transform: 8
+Computed Discrete Fourier Transform:
+  Columns 1 through 5
+
+  10.0000 + 0.0000i  -0.4142 - 7.2426i  -2.0000 + 2.0000i   2.4142 - 1.2426i  -2.0000 - 0.0000i
+
+  Columns 6 through 8
+
+   2.4142 + 1.2426i  -2.0000 - 2.0000i  -0.4142 + 7.2426i
+
+>> EXPERIMENT_3_Q_1
+Enter the sequence: [4 3 2 1]
+Enter the length of the Fourier transform: 4
+Computed Discrete Fourier Transform:
+  10.0000 + 0.0000i   2.0000 - 2.0000i   2.0000 - 0.0000i   2.0000 + 2.0000i
+
+>> 
