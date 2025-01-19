@@ -288,7 +288,23 @@ def plot_forecasts_with_actual(df_actual, train_preds, test_preds, future_foreca
         plt.plot(test_indices, test_errors, 
                 label='Testing Error', color='orange', alpha=0.5)
 
-        print(f"feature {feature} future_indices : {future_indices} df_actual : {df_actual.shape}")
+        print(f"Feature: {feature}, Future indices: {future_indices}, df_actual shape: {df_actual.shape}")
+
+        # Filter out-of-bounds indices
+        valid_indices = [i for i in future_indices if i < len(df_actual)]
+        if len(valid_indices) < len(future_indices):
+            print(f"Warning: Some future indices are out-of-bounds and will be ignored.")
+
+
+        print(f"feature [{feature}]"
+              f" future_indices : [{future_indices}] "
+              f" df_actual : {df_actual.shape}")
+        print(f"df_actual shape: {df_actual.shape}")
+        print(f"Max index in df_actual: {df_actual.shape[0] - 1}")
+        print(f"Future indices range: {future_indices}")
+        print(f"df_actual  : {df_actual }")
+
+        print(f"df_actual[feature] : {df_actual[feature]}")
         future_actual = df_actual[feature].iloc[future_indices]
 
 
@@ -365,7 +381,7 @@ def forecast_and_evaluate(model, df, train_data, test_data, config):
     return future_forecasts, (train_metrics, test_metrics, future_metrics)
 
 if __name__ == "__main__":
-    csv_path = '/content/drive/MyDrive/Intellipaat-sem2/AirPollutionAnalysis/03062021Timeseries_gnn.csv'
+    csv_path = '/content/drive/MyDrive/Intellipaat-sem2/AirPollutionAnalysis/wifi-project/03062021Timeseries_gnn.csv'
     df = pd.read_csv(csv_path)
     df_subset = df # df.head(4000)
     

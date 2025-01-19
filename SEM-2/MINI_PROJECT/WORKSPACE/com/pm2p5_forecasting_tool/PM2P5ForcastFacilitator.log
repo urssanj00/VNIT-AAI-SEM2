@@ -1,0 +1,117 @@
+Step 01: Initializing the processing
+            LOADING PROPERTIES C:\Sanjeev\VNIT_CLASSES\SEM2-WORK-GIT\VNIT-AAI-SEM2\SEM-2\MINI_PROJECT\WORKSPACE\com\pm2p5_forecasting_tool\sensor-data.properties FROM LOCAL ENVIRONMENT
+Step 02: Loading all csvs in DF
+    0.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Braamfischer_11.csv
+    1.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Ikusasalethu_Sec_3.csv
+    2.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_iThemba_Labs_1_9.csv
+    3.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_iThemba_Labs_2_10.csv
+    4.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_J.B_Marks_Secondary_6.csv
+    5.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Milpark_Netcare_1_13.csv
+    6.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Milpark_NetCare_2_12.csv
+    7.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Nkone_Maruping_Pry_5.csv
+    8.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Origin_Center_1_7.csv
+    9.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Origin_Center_2_8.csv
+    10.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Siyabonga_Secondary_4.csv
+    11.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Slovoville_1.csv
+    12.    Loaded: C:/Sanjeev/VNIT_CLASSES/mini-proj-dataset/input/120\Johannesburg_Thulani_2.csv
+['_id', 'sensor_id', 'timestamp', 'temperature', 'humidity', 'pm1p0', 'pm2p5', 'pm4p0', 'pm10p0', 'voc', 'nox', '__v', 'longitude', 'latitude', 'province', 'city', 'name']
+Step 03: Clubbed all csv in a dataset. Dataset Shape : [(519748, 17)]
+Step 04: Preprocess the data
+Step 05: Split data in Train and Test
+Step 06: Start Training in Epoch
+|--------------------------------------------------------------|
+|                                                              |
+|                           Epoch [1/25]
+|--------------------------------------------------------------|
+|    Train Loss:     1.0078,     Test Loss:      1.0026   
+|                                                              |
+|     Train Eval                                               |
+|--------------------------------------------------------------|
+|    RMSE:   1.0039                                            |
+|    MAE:    0.8684                                            |
+|    R^2:    -0.0073                                           |
+|    MAPE:   1.02                                              |
+|                                                              |
+|     Test Eval                                                |
+|--------------------------------------------------------------|
+|    RMSE:   1.0013                                            |
+|    MAE:    0.8662                                            |
+|    R^2:    -0.0049                                           |
+|    MAPE:   1.02                                              |
+|--------------------------------------------------------------|
+|                                                              |
+|                           Epoch [6/25]
+|--------------------------------------------------------------|
+|    Train Loss:     0.9948,     Test Loss:      0.9887   
+|                                                              |
+|     Train Eval                                               |
+|--------------------------------------------------------------|
+|    RMSE:   0.9974                                            |
+|    MAE:    0.8634                                            |
+|    R^2:    0.0058                                            |
+|    MAPE:   1.00                                              |
+|                                                              |
+|     Test Eval                                                |
+|--------------------------------------------------------------|
+|    RMSE:   0.9943                                            |
+|    MAE:    0.8610                                            |
+|    R^2:    0.0091                                            |
+|    MAPE:   1.00                                              |
+|--------------------------------------------------------------|
+|                                                              |
+|                           Epoch [11/25]
+|--------------------------------------------------------------|
+|    Train Loss:     0.9729,     Test Loss:      0.9639   
+|                                                              |
+|     Train Eval                                               |
+|--------------------------------------------------------------|
+|    RMSE:   0.9864                                            |
+|    MAE:    0.8548                                            |
+|    R^2:    0.0276                                            |
+|    MAPE:   0.99                                              |
+|                                                              |
+|     Test Eval                                                |
+|--------------------------------------------------------------|
+|    RMSE:   0.9818                                            |
+|    MAE:    0.8508                                            |
+|    R^2:    0.0340                                            |
+|    MAPE:   0.98                                              |
+|--------------------------------------------------------------|
+|                                                              |
+|                           Epoch [16/25]
+|--------------------------------------------------------------|
+|    Train Loss:     0.9303,     Test Loss:      0.9146   
+|                                                              |
+|     Train Eval                                               |
+|--------------------------------------------------------------|
+|    RMSE:   0.9645                                            |
+|    MAE:    0.8348                                            |
+|    R^2:    0.0702                                            |
+|    MAPE:   0.96                                              |
+|                                                              |
+|     Test Eval                                                |
+|--------------------------------------------------------------|
+|    RMSE:   0.9563                                            |
+|    MAE:    0.8272                                            |
+|    R^2:    0.0834                                            |
+|    MAPE:   0.95                                              |
+|--------------------------------------------------------------|
+|                                                              |
+|                           Epoch [21/25]
+|--------------------------------------------------------------|
+|    Train Loss:     0.8357,     Test Loss:      0.8046   
+|                                                              |
+|     Train Eval                                               |
+|--------------------------------------------------------------|
+|    RMSE:   0.9141                                            |
+|    MAE:    0.7893                                            |
+|    R^2:    0.1648                                            |
+|    MAPE:   0.93                                              |
+|                                                              |
+|     Test Eval                                                |
+|--------------------------------------------------------------|
+|    RMSE:   0.8970                                            |
+|    MAE:    0.7736                                            |
+|    R^2:    0.1936                                            |
+|    MAPE:   0.93                                              |
+|--------------------------------------------------------------|

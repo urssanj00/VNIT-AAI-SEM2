@@ -3,7 +3,7 @@
 % Original signal
 f = 5;                          % Frequency of the signal (Hz)
 t = linspace(-1, 1, 1000);      % Time vector
-a = cos(2 * pi * f * t);        % Define the Original Signal
+og_signal = cos(2 * pi * f * t);        % Define the Original Signal
 
 % Sampling frequencies
 fs1 = 8;                        % i: fs < 2f
@@ -21,15 +21,15 @@ t2 = -1:Ts2:1;
 t3 = -1:Ts3:1;
 
 % Sampled signals
-a1 = cos(2 * pi * f * t1);
-a2 = cos(2 * pi * f * t2);
-a3 = cos(2 * pi * f * t3);
+s1_signal = cos(2 * pi * f * t1);
+s2_signal = cos(2 * pi * f * t2);
+s3_signal = cos(2 * pi * f * t3);
 
 % Plotting
 
 % i. Plot the original signal
 figure(1);
-plot(t, a, 'b', 'LineWidth', 1.5);
+plot(t, og_signal, 'b', 'LineWidth', 1.5);
 title('Original Signal: a = cos(2\pi f t)');
 xlabel('Time (s)');
 ylabel('Amplitude');
@@ -50,8 +50,8 @@ grid on;
 
 figure(3);
 subplot(3, 1, 1);
-stem(t1, a1, 'r', 'LineWidth', 1.5); hold on;
-plot(t, a, 'b--'); % Overlay original signal
+stem(t1, s1_signal, 'r', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b--'); % Overlay original signal
 title('Sampled Signal: i. (fs < 2f)');
 xlabel('Time (s)');
 ylabel('Amplitude');
@@ -59,8 +59,8 @@ legend('Sampled Signal', 'Original Signal');
 grid on;
 
 subplot(3, 1, 2);
-stem(t2, a2, 'g', 'LineWidth', 1.5); hold on;
-plot(t, a, 'b--'); % Overlay original signal
+stem(t2, s2_signal, 'g', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b--'); % Overlay original signal
 title('Sampled Signal: ii. (fs = 2f)');
 xlabel('Time (s)');
 ylabel('Amplitude');
@@ -68,8 +68,8 @@ legend('Sampled Signal', 'Original Signal');
 grid on;
 
 subplot(3, 1, 3);
-stem(t3, a3, 'm', 'LineWidth', 1.5); hold on;
-plot(t, a, 'b--'); % Overlay original signal
+stem(t3, s3_signal, 'm', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b--'); % Overlay original signal
 title('Sampled Signal: iii. (fs >> 2f)');
 xlabel('Time (s)');
 ylabel('Amplitude');
@@ -95,15 +95,15 @@ reconstructed_a2 = zeros(size(t));
 reconstructed_a3 = zeros(size(t));
 
 for k = 1:length(t1)
-    reconstructed_a1 = reconstructed_a1 + a1(k) * sinc_val(fs1 * (t - t1(k)));
+    reconstructed_a1 = reconstructed_a1 + s1_signal(k) * sinc_val(fs1 * (t - t1(k)));
 end
 
 for k = 1:length(t2)
-    reconstructed_a2 = reconstructed_a2 + a2(k) * sinc_val(fs2 * (t - t2(k)));
+    reconstructed_a2 = reconstructed_a2 + s2_signal(k) * sinc_val(fs2 * (t - t2(k)));
 end
 
 for k = 1:length(t3)
-    reconstructed_a3 = reconstructed_a3 + a3(k) * sinc_val(fs3 * (t - t3(k)));
+    reconstructed_a3 = reconstructed_a3 + s3_signal(k) * sinc_val(fs3 * (t - t3(k)));
 end
 
 
@@ -112,7 +112,7 @@ figure;
 
 % Case i: fs < 2f
 subplot(3, 1, 1);
-plot(t, a, 'b', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b', 'LineWidth', 1.5); hold on;
 plot(t, reconstructed_a1, 'r--', 'LineWidth', 1.2);
 title('Reconstructed Signal: Case i (fs < 2f)');
 xlabel('Time (s)');
@@ -122,7 +122,7 @@ grid on;
 
 % Case ii: fs = 2f
 subplot(3, 1, 2);
-plot(t, a, 'b', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b', 'LineWidth', 1.5); hold on;
 plot(t, reconstructed_a2, 'g--', 'LineWidth', 1.2);
 title('Reconstructed Signal: Case ii (fs = 2f)');
 xlabel('Time (s)');
@@ -132,7 +132,7 @@ grid on;
 
 % Case iii: fs >> 2f
 subplot(3, 1, 3);
-plot(t, a, 'b', 'LineWidth', 1.5); hold on;
+plot(t, og_signal, 'b', 'LineWidth', 1.5); hold on;
 plot(t, reconstructed_a3, 'm--', 'LineWidth', 1.2);
 title('Reconstructed Signal: Case iii (fs >> 2f)');
 xlabel('Time (s)');
@@ -164,7 +164,7 @@ f3 = linspace(-fs3/2, fs3/2, n3);           % Frequency vectors
 % (a) original signal spectrum
 figure;
 subplot(4,1,1);
-plot(t, abs(a)); % Magnitude of FFT
+plot(t, abs(og_signal)); % Magnitude of FFT
 title('Frequency Spectrum of Original Signal');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude');
@@ -173,7 +173,7 @@ grid on;
 % (b) The sampled signal at the three different frequencies.
 % Plot spectrum of sampled signal at fs1
 subplot(4,1,2);
-plot(t1, abs(a1)); % Magnitude of FFT
+plot(t1, abs(s1_signal)); % Magnitude of FFT
 title('Frequency Spectrum of Sampled Signal (fs = 8 Hz)');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude');
@@ -181,7 +181,7 @@ grid on;
 
 % Plot spectrum of sampled signal at fs2
 subplot(4,1,3);
-plot(t2, abs(a2)); % Magnitude of FFT
+plot(t2, abs(s2_signal)); % Magnitude of FFT
 title('Frequency Spectrum of Sampled Signal (fs = 10 Hz)');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude');
@@ -189,7 +189,7 @@ grid on;
 
 % Plot spectrum of sampled signal at fs3
 subplot(4,1,4);
-plot(t3, abs(a3)); % Magnitude of FFT
+plot(t3, abs(s3_signal)); % Magnitude of FFT
 title('Frequency Spectrum of Sampled Signal (fs = 50 Hz)');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude');
